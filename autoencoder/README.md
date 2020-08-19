@@ -1,5 +1,5 @@
 # Autoencoder
-The autoencoder encode the input $$X$$ into the lower dimension $z$, and then decodes to $y~x$. 
+The autoencoder encode the input *X* into the lower dimension *z*, and then decodes to *y~x*. 
 
 ![Autoencoder architecture.](./autoencoder.PNG)
 
