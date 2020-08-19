@@ -1,7 +1,7 @@
 # Autoencoder
 The autoencoder encode the input $$X$$ into the lower dimension $z$, and then decodes to $y~x$. 
 
-![Autoencoder architecture.](https://github.com/vivamoto/Classifier/autoencoder/autoencoder.PNG)
+![Autoencoder architecture.](./autoencoder.PNG)
 
 
 # Architecture
