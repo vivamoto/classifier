@@ -4,13 +4,13 @@ The autoencoder encode the input *X* into the lower dimension *z*, and then deco
 ![Autoencoder architecture.](./autoencoder.PNG)
 
 
-# Architecture
+## Architecture
     - 1st and 3rd layers: sigmoid
     - 2nd and 4th layers: no activation function
     - Cost function: MSE
     - Equal number of neurons in 1st and 3rd layers
 
-# Features
+## Features
     - Early stopping
     - Variable gradient descent learning rate
     - Momentum (set eta > 0 to enable)
@@ -18,10 +18,10 @@ The autoencoder encode the input *X* into the lower dimension *z*, and then deco
     - Plot MSE vs iteration (uncomment to save plot)
     - Derivatives computed in matrix notation and loop
 
-# Backpropagation
+## Backpropagation
 Derivatives calculation 
 
 Example code at the end of the file.
 
-# Reference
+## Reference
 Lecture from Prof Clodoaldo Lima
