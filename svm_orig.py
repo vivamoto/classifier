@@ -1,8 +1,11 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import scipy.optimize as optimize
 import cvxopt
+
 cvxopt.solvers.options['show_progress'] = False
 
 # +++++++++++++++++++++++++++++++++
@@ -23,7 +26,6 @@ def kernel(x1, x2, t='RBF', b=1, c=1, d=2, sigma=3):
     #   rbf    : radial base gaussian function (RFB)
     #   erbf   : radial base exponencial
     #   tan    : hyperbolic tangent
-    #   fourier: Fourier series
     #   lspline: linear splines
     # b: constant multiplier for hyperbolic tangent
     # c: constant sum for polynomial, tangent and linear splines
@@ -65,14 +67,9 @@ def kernel(x1, x2, t='RBF', b=1, c=1, d=2, sigma=3):
             elif t == 'tan':
                 K[k, l] = np.tanh(b * (x1[k] @ x2[l]) + c)
 
-            # Fourier series
-            elif t == 'fourier':
-                K[k, l] = np.sin(N + 1 / 2) * (x1[k] - x2[l]) / np.sin((x1[k] - x2[l]) / 2)
             # Linear splines
             elif t == 'lspline':
-                K[k, l] = c + x1[k] * x2[l] + x1[k] * x2[l] * min(x1[k], x2[l]) + 1 / 2 * (x1[k] + x2[l]) * min(x1[k],
-                                                                                                                x2[
-                                                                                                                    l]) ** d
+                K[k, l] = c + x1[k] * x2[l] + x1[k] * x2[l] * min(x1[k], x2[l]) + 1 / 2 * (x1[k] + x2[l]) * min(x1[k], x2[l]) ** d
 
     return K
 
@@ -571,7 +568,7 @@ def svm_mc(X_train, y_train, X_test, y_test, c1=1, c2=1, model='svm', method='ov
 # Ref: A Practical Guide to Support Vector Classification.
 # C.-W.. Hsu, C.-C. Chang, C.-J. Lin (2016).
 # https://www.csie.ntu.edu.tw/~cjlin/papers/guide/guide.pdf
-def tune_rbf(X_train, y_train, X_test, y_test, model='svm', K=5, plot=False, DS_name='', pdir = ''):
+def tune_rbf(X_train, y_train, X_test, y_test, model='svm', K=5, plot=False, pdir = '', DS_name=''):
     # Input
     # X_train, y_train: trainning sets
     # X_test, y_test: test sets
@@ -773,16 +770,17 @@ def tune_rbf(X_train, y_train, X_test, y_test, model='svm', K=5, plot=False, DS_
     # 3. Plot CV Accuracy, C and Sigma
     # ----------------------------
     if plot:
+        plt.figure()
         if model in ['svm', 'lssvm']:
             plt.scatter('C', 'Sigma', c='Accuracy', data=plotData)
             plt.xlabel('Soft margin C')
             plt.ylabel('Sigma')
-            plt.title(model.upper() + ' - ' + DS_name)
+            plt.title(model.upper() + ' - ' + DS_name.title())
         elif model == 'twsvm':
             plt.scatter('C1', 'C2', s='Sigma', c='Accuracy', data=plotData)
             plt.xlabel('Soft margin C1')
             plt.ylabel('Soft margin C2')
-            plt.title('TWSVM Tuning - ' + DS_name)
+            plt.title('TWSVM Tuning - ' + DS_name.title())
         plt.savefig(pdir + DS_name + '_' + model + '_tuning.png', dpi=300, bbox_inches='tight')
         plt.show()
 
@@ -796,7 +794,7 @@ def tune_rbf(X_train, y_train, X_test, y_test, model='svm', K=5, plot=False, DS_
 
 # Train SVM with linear, polynomial and RBF kernels
 # Tune RBF kernel using grid search and cross validation
-def multi_svm(X_train, y_train, X_test, y_test, DS_name, results, tune=True):
+def multi_svm(X_train, y_train, X_test, y_test, DS_name, results, tune=True, pdir = '', plot = False):
     # Input
     # DS_name: dataset name, e.g. 'Diabetes'
     # results: dataframe with test results
@@ -815,7 +813,7 @@ def multi_svm(X_train, y_train, X_test, y_test, DS_name, results, tune=True):
                        b=b, c=c, d=d, sigma=5)
         # Accuracy
         acc = (100 * np.mean(y_hat == y_test)).round(2)
-        results = results.append({'Dataset': DS_name,
+        results = results.append({'Dataset': DS_name.title(),
                                   'Method': 'SVM',
                                   'kernel': kernel_type,
                                   'Accuracy': acc},
@@ -824,10 +822,11 @@ def multi_svm(X_train, y_train, X_test, y_test, DS_name, results, tune=True):
     # 2. Tune RBF kernel using grid search and cross validation
     # ----------------------------
     if tune:
-        y_hat = tune_rbf(X_train, y_train, X_test, y_test, model='svm', K=5, DS_name=DS_name)
+        y_hat = tune_rbf(X_train, y_train, X_test, y_test, model='svm', K=5,
+                         plot = plot, pdir = pdir, DS_name=DS_name)
         acc = (100 * np.mean(y_hat == y_test)).round(2)
 
-        results = results.append({'Dataset': DS_name,
+        results = results.append({'Dataset': DS_name.title(),
                                   'Method': 'SVM',
                                   'kernel': 'Tuned RBF',
                                   'Accuracy': acc},
@@ -835,7 +834,7 @@ def multi_svm(X_train, y_train, X_test, y_test, DS_name, results, tune=True):
     return results
 
 
-def multi_twsvm(X_train, y_train, X_test, y_test, DS_name, results, tune=True):
+def multi_twsvm(X_train, y_train, X_test, y_test, DS_name, results, tune=True, plot = False, pdir = ''):
     # DS_name: dataset name, e.g. 'Diabetes'
     # results: dataframe with test results
     # ----------------------------
@@ -850,7 +849,7 @@ def multi_twsvm(X_train, y_train, X_test, y_test, DS_name, results, tune=True):
         y_hat = fx_twsvm(X_test, Ct, z1, z2, kernel_type=kernel_type, b=1, c=1, d=2, sigma=5)
         # Accuracy
         acc = (100 * np.mean(y_hat == y_test)).round(2)
-        results = results.append({'Dataset': DS_name,
+        results = results.append({'Dataset': DS_name.title(),
                                   'Method': 'TWSVM',
                                   'kernel': kernel_type,
                                   'Accuracy': acc},
@@ -859,9 +858,10 @@ def multi_twsvm(X_train, y_train, X_test, y_test, DS_name, results, tune=True):
     # 2. Tune RBF kernel using grid search and cross validation
     # ----------------------------
     if tune:
-        y_hat = tune_rbf(X_train, y_train, X_test, y_test, model='twsvm', K=5, DS_name=DS_name)
+        y_hat = tune_rbf(X_train, y_train, X_test, y_test, model='twsvm', K=5,
+                         plot = plot, pdir = pdir, DS_name=DS_name)
         acc = (100 * np.mean(y_hat == y_test)).round(2)
-        results = results.append({'Dataset': DS_name,
+        results = results.append({'Dataset': DS_name.title(),
                                   'Method': 'TWSVM',
                                   'kernel': 'Tuned RBF',
                                   'Accuracy': acc},
@@ -869,7 +869,7 @@ def multi_twsvm(X_train, y_train, X_test, y_test, DS_name, results, tune=True):
     return results
 
 
-def multi_lssvm(X_train, y_train, X_test, y_test, DS_name, results, tune=True):
+def multi_lssvm(X_train, y_train, X_test, y_test, DS_name, results, tune=True, plot = True, pdir = ''):
     # DS_name: dataset name, e.g. 'Diabetes'
     # results: dataframe with test results
     # ----------------------------
@@ -882,7 +882,7 @@ def multi_lssvm(X_train, y_train, X_test, y_test, DS_name, results, tune=True):
         y_hat = fx_lssvm(X_test, X_train, y_train, alpha, bias, kernel_type=kernel_type, b=1, c=1, d=2, sigma=5)
         # Accuracy
         acc = (100 * np.mean(y_hat == y_test)).round(2)
-        results = results.append({'Dataset': DS_name,
+        results = results.append({'Dataset': DS_name.title(),
                                   'Method': 'LSSVM',
                                   'kernel': kernel_type,
                                   'Accuracy': acc},
@@ -891,9 +891,10 @@ def multi_lssvm(X_train, y_train, X_test, y_test, DS_name, results, tune=True):
     # 2. Tune RBF kernel using grid search and cross validation
     # ----------------------------
     if tune:
-        y_hat = tune_rbf(X_train, y_train, X_test, y_test, model='lssvm', K=5, DS_name=DS_name)
+        y_hat = tune_rbf(X_train, y_train, X_test, y_test, model='lssvm', K=5,
+                        plot = plot, pdir = pdir, DS_name = DS_name)
         acc = (100 * np.mean(y_hat == y_test)).round(2)
-        results = results.append({'Dataset': DS_name,
+        results = results.append({'Dataset': DS_name.title(),
                                   'Method': 'LSSVM',
                                   'kernel': 'Tuned RBF',
                                   'Accuracy': acc},
@@ -902,7 +903,7 @@ def multi_lssvm(X_train, y_train, X_test, y_test, DS_name, results, tune=True):
 
 
 # Multi-class SVM, LSSVM and TWSVM training
-def multi_mc(X_train, y_train, X_test, y_test, results, tune=True):
+def multi_mc(X_train, y_train, X_test, y_test, results, tune=True, plot=True, pdir=''):
     # DS_name: dataset name, e.g. 'Diabetes'
     # results: dataframe with test results
     # ----------------------------
@@ -959,7 +960,8 @@ def multi_mc(X_train, y_train, X_test, y_test, results, tune=True):
     # ----------------------------
     if tune:
         for model in ['svm', 'twsvm', 'lssvm']:
-            y_hat = tune_rbf(X_train, y_train, X_test, y_test, model=model, K=5, DS_name='Iris')
+            y_hat = tune_rbf(X_train, y_train, X_test, y_test, model=model, K=5,
+                             plot=plot, pdir=pdir, DS_name='Iris')
             acc = (100 * np.mean(y_hat == y_test)).round(2)
             results = results.append({'Dataset': 'Iris',
                                       'class': 'overall',
