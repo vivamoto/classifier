@@ -1,6 +1,10 @@
 ## Ensemble
 Python and NumPy implementation of three ensemble methods of multi layer perceptron (MLP) networks for classification. The code can be adapted for regression.
 
+- Ensemble learing via negative correlation
+- Ensemble Learning Using Decorrelated Neural Networks
+- Creating Diversity In Ensembles Using Artiflcial Data (DECORATE)
+
 The training set with ***N*** elements is defined as ***D={(X1, y1), . . ., (XN, yN)}***, where ***X*** is a vector and ***y={0, 1}*** is one-hot encoded.
 
 Sample code at the end of the file.
@@ -8,7 +12,7 @@ Sample code at the end of the file.
 **Warning**  
 DECORATE requires *neuralnets.py* available at https://github.com/vivamoto/Classifier/tree/master/neuralnets
 
-## Ensemble Learning Using Decorrelated Neural Networks  
+## Ensemble learing via negative correlation
 The idea behind negative correlation learning is to encourage different individual networks in an ensemble to learn different parts or aspects of a training data so that the ensemble can learn the whole training data better. In negative correlation learning, all the individual networks in the ensemble are trained simultaneously through the correlation penalty terms in their error functions. Negative correlation learning attempts to train and combine individual networks in the same learning process. That is, the goal of each individual training is to generate the best result for the whole ensemble. 
 
 ### Usage
