@@ -13,6 +13,14 @@ The idea behind negative correlation learning is to encourage different individu
 
 ### Usage
 ```
+ensemble(M = 4, L = 10, maxiter = 1000)
+    Creates an ensemble object with empty weights and biases.
+    
+    Attributes:
+        M:          number of networks
+        L:          number of hidden layer neurons
+        maxiter:    maximum number of iterations
+        
 negcor_train(X, yd, ens, lamb = 0.5, plot = True, pdir = '', DS_name = '')
     Ensemble learning via negative correlation.
     Trains an ensemble of multi layer perceptron networks, with negative
@@ -45,6 +53,14 @@ negcor_predict(X_test, nc, ens)
 Create ensemble networks that are linear combinations of individually trained networks. The approach taken here is to train the individual networks not only to reduce their approximation errors and but also to reduce the correlations of individual network’ s errors.
 ### Usage
 ```
+ensemble(M = 4, L = 10, maxiter = 1000)
+    Creates an ensemble object with empty weights and biases.
+    
+    Attributes:
+        M:          number of networks
+        L:          number of hidden layer neurons
+        maxiter:    maximum number of iterations
+
 decorrelated_train(X, yd, ens, lamb, alternate = False, plot = True, pdir = '', DS_name = '')
     Ensemble Learning Using Decorrelated Neural Networks.
     Trains an ensemble of multi layer perceptron networks, using decorrelated
