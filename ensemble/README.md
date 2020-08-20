@@ -1,5 +1,5 @@
 ## Ensemble
-Python and NumPy implementation of three ensemble methods of multi layer perceptron (MLP) networks for classification. The code can be adapted for regression.
+Python and NumPy implementation from scratch of three ensemble methods of multi layer perceptron (MLP) networks for classification. The code can be adapted for regression.
 
 - Ensemble learing via negative correlation
 - Ensemble Learning Using Decorrelated Neural Networks
