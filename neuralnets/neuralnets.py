@@ -25,7 +25,7 @@ Parameters:
     yd:             desired output with one-hot encondig. yd in [0, 1]
     y:              predicted values
     plot:           plot error vs iteration
-    pdir:           directory to save plot (uncomment command to save)
+    pdir:           directory to save plot
     DS_name:        dataset name used in plot title
     
     maxiter:        maximum number of iterations
@@ -94,7 +94,7 @@ def slp_train(X_train, yd, maxiter=1000, plot=True, pdir = '',  DS_name=''):
        X_train:        train set
        yd:             desired output
        plot:           plot error vs iteration
-       pdir:           directory to save plot (uncomment command to save)
+       pdir:           directory to save plot
        DS_name:        dataset name used in plot title
     
     Output
@@ -156,8 +156,8 @@ def slp_train(X_train, yd, maxiter=1000, plot=True, pdir = '',  DS_name=''):
         plt.xlabel('Iteration')
         plt.ylabel('Mean Squared Error')
         plt.title('SLP - ' + DS_name.title())
-        # Uncomment to save plot
-        #plt.savefig(pdir + DS_name + '_SLP.png', dpi=300, bbox_inches='tight')
+        if pdir != '':
+            plt.savefig(pdir + DS_name + '_SLP.png', dpi=300, bbox_inches='tight')
         plt.show()
 
     # Uncomment to save results to file
@@ -217,7 +217,7 @@ def mlp_train(X_train, yd, L, maxiter=1000, plot=True, pdir = '', DS_name=''):
         L:          number 1st layer neurons
         maxiter:    maximum number of iterations
         plot:       create MSE vs Iteration plot (boolean)
-        pdir:       directory to save plot (uncomment command to save)
+        pdir:       directory to save plot
         DS_name:    dataset name used in plot title
     
     Output:
@@ -296,8 +296,8 @@ def mlp_train(X_train, yd, L, maxiter=1000, plot=True, pdir = '', DS_name=''):
         plt.xlabel('Iteration')
         plt.ylabel('Mean Squared Error')
         plt.title('MLP ' + str(L) + ' Neurons - ' + DS_name.title())
-        # Uncomment to save plot
-        #plt.savefig(pdir + DS_name + '_MLP_' + str(L) + '_neurons.png', dpi=300, bbox_inches='tight')
+        if pdir != '':
+            plt.savefig(pdir + DS_name + '_MLP_' + str(L) + '_neurons.png', dpi=300, bbox_inches='tight')
         plt.show()
 
     # Uncomment to save parameters to file
@@ -463,7 +463,7 @@ def mlp_cv(X_train, y_train, L=20, maxiter=1000, K=5, plot=True, pdir = '', DS_n
        maxiter:    maximum number of iterations
        K:          number of cross-validation folds
        plot:       plot error vs iteration
-       pdir:       directory to save plot (uncomment command to save)
+       pdir:       directory to save plot
        DS_name:    dataset name used in plot title
        
      Output
@@ -530,8 +530,8 @@ def mlp_cv(X_train, y_train, L=20, maxiter=1000, K=5, plot=True, pdir = '', DS_n
         plt.xlabel('Number of Neurons')
         plt.ylabel('Cross Validation Accuracy (%)')
         plt.title('Cross Validation MLP - ' + DS_name.title())
-        # Uncomment to save plot
-        #plt.savefig(pdir + DS_name + '_cv_mlp_' + str(L) + '_neurons.png', dpi=300, bbox_inches='tight')
+        if pdir != '':
+            plt.savefig(pdir + DS_name + '_cv_mlp_' + str(L) + '_neurons.png', dpi=300, bbox_inches='tight')
         plt.show()
 
     # Uncomment to save parameters to file

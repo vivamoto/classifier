@@ -87,13 +87,24 @@ def mlp(X, A, B, b1, b2):
 # Y. Liu, X. Yao
 # https://doi.org/10.1016/S0893-6080(99)00073-8
 # ==========================================
-def negcor_train(X, yd, ens, lamb = 0.5, plot = True, DS_name = '', pdir = ''):
-    # Input
-    #   X, yd:      training set
-    #   plot:       True to make plot
-    #   DS_name:    dataset name used in plot title
-    # Output
-    #   ens:        ensembe parameters with weights and biases
+def negcor_train(X, yd, ens, lamb = 0.5, plot = True, pdir = '', DS_name = ''):
+    """
+    Ensemble learning via negative correlation.
+    Trains an ensemble of multi layer perceptron networks, with negative
+    correlated errors.
+
+    Input
+       X, yd:       training set
+       ens:         ensemble object with parameters
+       lamb:        lambda parameter. Provides a way to balance the
+                    bias-variance-covariance trade-off
+       plot:        True to make plot
+       pdir:        directory to save the plot. Uncomment to save.
+       DS_name:     dataset name used in plot title
+
+     Output
+       ens:        ensembe parameters with weights and biases
+    """
     
     # Transform yd to 1 of n classes
     yd = np.where(yd == -1, 0, yd)
@@ -198,7 +209,8 @@ def negcor_train(X, yd, ens, lamb = 0.5, plot = True, DS_name = '', pdir = ''):
         plt.xlabel('Iteration')
         plt.ylabel('Error')
         plt.title('Ensemble via Negative Correlation - ' + DS_name.title())
-        plt.savefig(pdir + DS_name + '_negcor_' + str(M) + '_networks.png',
+        if pdir != '':
+            plt.savefig(pdir + DS_name + '_negcor_' + str(M) + '_networks.png',
                     dpi = 300, bbox_inches = 'tight')
         plt.show()
     
@@ -211,12 +223,18 @@ def negcor_train(X, yd, ens, lamb = 0.5, plot = True, DS_name = '', pdir = ''):
 # Predict ensemble
 # ===================================
 def negcor_predict(X_test, nc, ens):
-    # Input
-    #   X_test:       test set
-    #   nc:           number of classes
-    #   ens:          ensemble object
-    # Output
-    #   y_hat:        predicted values
+    """
+    Ensemble learning via negative correlation.
+    Predict from trained ensemble.
+
+    Input
+       X_test:       test set
+       nc:           number of classes
+       ens:          ensemble object
+    
+    Output
+       y_hat:        predicted values, one-hot encoding
+    """
     
     N = len(X_test)  # Number of observations
     y_hat = np.zeros((N, nc))  # network output
@@ -330,15 +348,28 @@ def negcor_lr(X, dEdF, A, B, b1, b2, dirA, dirB, dirB1, dirB2):
 # BRUCE E ROSEN
 # https://doi.org/10.1080/095400996116820
 def decorrelated_train(X, yd, ens, lamb, alternate = False, plot = True,
-                       DS_name = '', pdir = ''):
-    # Input
-    #   X, yd:  training set
-    #   M:      number of networks
-    #   L:      number of hidden layer neurons
-    #   lamb:   The scaling function lambda(t) is either constant or
-    #           is time dependent. Typically determined by cross-validation.
-    # Output
-    #   ens:    ensemble object with weights and biases
+                       pdir = '', DS_name = ''):
+    """
+    Ensemble Learning Using Decorrelated Neural Networks.
+    Trains an ensemble of multi layer perceptron networks, using decorrelated
+    neural networks.
+    
+    Input
+       X, yd:       training set. yd is one-hot encoded.
+       ens:         ensemble object
+       lamb:        The scaling function lambda(t) is either constant or is time
+                    dependent. Typically determined by cross-validation.
+       alternate:   If False, individual networks are decorrelated with the
+                    previously trained network. If True, alternate networks are
+                    trained independently of one another yet decorrelate pairs of networks.
+       plot:        True to make plot
+       pdir:        directory to save the plot. Uncomment to save.
+       DS_name:     dataset name used in plot title
+
+    Output
+       ens:     ensemble object with weights and biases
+    
+    """
     
     # One-hot encoding
     yd = np.where(yd == -1, 0, yd)
@@ -453,8 +484,8 @@ def decorrelated_train(X, yd, ens, lamb, alternate = False, plot = True,
         plt.xlabel('Iteration')
         plt.ylabel('Mean Squared Error')
         plt.title('Ensemble Decorrelated NN - ' + DS_name.title())
-        # Uncomment to save plot
-        # plt.savefig(pdir + DS_name + '_decorrelated_' + str(M) + '_networks.png', dpi=300, bbox_inches='tight')
+        if pdir != '':
+            plt.savefig(pdir + DS_name + '_decorrelated_' + str(M) + '_networks.png', dpi=300, bbox_inches='tight')
         plt.show()
     
     # Uncomment to save parameters to file
@@ -468,12 +499,18 @@ def decorrelated_train(X, yd, ens, lamb, alternate = False, plot = True,
 # Predict ensemble
 # ===================================
 def decorrelated_predict(X_test, nc, ens):
-    # Input
-    #   X_test:     test set
-    #   nc:         Number of classes
-    #   ens:        ensemble object
-    # Output
-    #   y_hat:      predicted values
+    """
+    Ensemble Learning Using Decorrelated Neural Networks.
+    Predict from trained ensemble.
+    
+    Input
+        X_test:     test set
+        nc:         Number of classes
+        ens:        ensemble object
+    
+    Output
+        y_hat:      predicted values, one-hot encoding
+    """
     
     N = len(X_test)  # Number of observations
     y_hat = np.zeros((N, nc))  # Ensemble predicted output
@@ -592,12 +629,19 @@ def decorrelated_lr(X, dEdy, A, B, b1, b2, dirA, dirB, dirB1, dirB2):
 # http://www.cs.utexas.edu/~ml/papers/decorate-jif-04.pdf
 def decorate_train(X_train, y_train, Csize =15, Imax = 50, Rsize = 0.5):
     """
+    Creating Diversity In Ensembles Using Artificial Data
+    Trains an ensemble of multi layer perceptron networks, adding artificially
+    created data.
+
     Inputs
         X_train:        normalized X values
-        y_train:        one-hot encoded
+        y_train:        train set, one-hot encoded
         Csize:          desired ensemble size
         Imax:           maximum number of iterations to build an ensemble
         Rsize:          factor that determines number of artificial examples to generate
+
+    Output
+        C:              dictionary with ensemble weights and biases
     """
     i = 0               # step 1
     trials = 1          # step 2
@@ -665,7 +709,18 @@ def decorate_create_ad(X_train, y_hat, Rsize):
     return X_ad, y_ad
 
 def decorate_predict(X_test, C):
+    """
+    Ensemble Learning Using Decorrelated Neural Networks.
+    Predict from trained ensemble.
     
+    Input
+        X_test:         test set
+        C:              dictionary with ensemble weights and biases
+    
+    Output
+        y_hat:          predicted values, one-hot encoding
+    
+    """
     py = 0
     for i in range(len(C)):
         py = py + nn.mlp_predict(X_test, C[i])

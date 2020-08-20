@@ -162,8 +162,6 @@ def train(Xd, L1, L2, plot = True):
         plt.ylabel('Mean Squared Error')
         plt.title('Autoencoder')
         plt.legend()
-        # Uncomment to save plot
-        #plt.savefig(pdir + DS_name + '_MLP_' + str(L) + '_neurons.png', dpi=300, bbox_inches='tight')
         plt.show()
     
     # Return best weights
