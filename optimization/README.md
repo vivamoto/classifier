@@ -17,10 +17,9 @@ Examples of usage are available at the end of the code, with random values for x
 
 There're also the example from the book "Nonlinear Programming":
 
-    Min f(x1, x2) = (x1 - 2)^4 + (x1 - 2.x2)^2
+      Min f(x1, x2) = (x1 - 2)^4 + (x1 - 2.x2)^2
 
 ### Methods available
-
 1. Gradient Descent
 1. Bisection
 1. Newton
@@ -29,7 +28,10 @@ There're also the example from the book "Nonlinear Programming":
 1. Quasi-Newton Methods
 1. One Step Secant
 1. Conjugate Gradient Methods
-
+## Files description
+- optimization.py:      Python code
+- optimization.pdf:     Full description of the methods available, deployment and test results.
+- optimization.Rmd:     R Markdown code to create the report.
 ## Usage
 Include the desired objective function, derivative and hessian in the ```gradient``` method, then just call one of the available methods to get the local or global minimum.
 
