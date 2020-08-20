@@ -5,6 +5,9 @@ The training set with ***N*** elements is defined as ***D={(X1, y1), . . ., (XN,
 
 Sample code at the end of the file.
 
+**Warning**  
+DECORATE requires *neuralnets.py* available at https://github.com/vivamoto/Classifier/tree/master/neuralnets
+
 ## Ensemble Learning Using Decorrelated Neural Networks  
 The idea behind negative correlation learning is to encourage different individual networks in an ensemble to learn different parts or aspects of a training data so that the ensemble can learn the whole training data better. In negative correlation learning, all the individual networks in the ensemble are trained simultaneously through the correlation penalty terms in their error functions. Negative correlation learning attempts to train and combine individual networks in the same learning process. That is, the goal of each individual training is to generate the best result for the whole ensemble. 
 
@@ -67,6 +70,9 @@ decorrelated_train(X, yd, ens, lamb, alternate = False, plot = True, pdir = '', 
 DECORATE uses an existing "strong" learner (one that provides high accuracy on the training data) to build an effective diverse committee in a simple, straightforward manner. This is accomplished by adding different randomly constructed examples to the training set when building new committee members. These artiflcially constructed examples are given category labels that disagree with the current decision of the committee, thereby easily and directly increasing diversity when a new classifler is trained on the augmented data and added to the committee.
 
 In Decorate, an ensemble is generated iteratively, flrst learning a classifler and then adding it to the current ensemble. 
+
+**Warning**  
+DECORATE requires *neuralnets.py* available at https://github.com/vivamoto/Classifier/tree/master/neuralnets
 
 ### Usage
 ```
