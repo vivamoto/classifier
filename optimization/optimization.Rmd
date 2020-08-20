@@ -1,0 +1,521 @@
+---
+title: "Unconstrained Optimization"
+author: "Victor Ivamoto"
+date: "May, 2020"
+output:
+  bookdown::pdf_document2:
+    citation_package: natbib
+    df_print: kable
+    fig_crop: no
+    latex_engine: xelatex
+    number_sections: yes
+    toc: yes
+    toc_depth: 3
+  html_document:
+    df_print: kable
+    number_sections: yes
+    theme: cerulean
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+  word_document:
+    toc: yes
+    toc_depth: '3'
+geometry:
+- top=25mm
+- bottom=25mm
+- left=25mm
+- right=25mm
+- heightrounded
+highlight-style: pygments
+linkcolor: blue
+mainfont: Arial
+fontsize: 11pt
+sansfont: Verdana
+subtitle: Multivariable function minimization in the absence of any restrictions.
+documentclass: report
+urlcolor: blue
+fig_width:  3
+fig_height: 2
+header-includes:
+- \usepackage{booktabs}
+---
+
+```{r setup, include=FALSE}
+if (!require(bookdown)){
+  install.packages("bookdown")
+}
+if (!require(tidyverse)){
+  install.packages("tidyverse")
+}
+if (!require(huxtable)){
+  install.packages("huxtable")
+}
+library("tidyverse", "bookdown", "huxtable")
+
+# Folder name with csv and image files
+folder <- 'D:/Documentos/Profissão e Carreira/Mestrado/Aprendizado de Máquina/Exercícios/Optimization/report/'
+
+# Column names of imported csv files
+cnames <- c("Iteration", "x1", "x2", "f(x)", "Gradient Norm")
+
+# This function formats the tables used in this document
+tbl <- function(df, title, ref, r = 0){
+  # Input:
+  # df: imported data frame from file with optimization results
+  # title: Table title
+  # r: row number to highlight
+	
+  # Number of rows in the data frame
+  row <- nrow(df) + 1
+  
+  t <- hux(df, add_colnames = FALSE)
+  t <- rbind(cnames, t)%>%
+		    # Format header row
+		    set_bold(row = 1, everywhere, value = TRUE)          %>%
+		    set_top_border(row = 1, everywhere, value = 1)       %>%
+		    set_bottom_border(row = c(1,row), everywhere, value = 1)    %>%
+		    # Format numbers
+		    set_number_format(row = 2:row, col = 2:5, value = 5)  %>%
+		    # Format alignment
+		    set_align(row = everywhere, col = everywhere, value = 'right') %>%
+		    # Title
+		    set_caption(paste0('(\\#tab:', ref ,') ',  title)) %>%
+		    set_position(value = "center")
+
+  if (r != 0) {
+  	t <- t %>% set_background_color(r, everywhere, "yellow")
+  	
+  }
+  return(t)
+}
+
+knitr::opts_chunk$set(echo = FALSE)
+```
+```{r global_options, R.options=knitr::opts_chunk$set(warning=FALSE, message=FALSE)}
+```
+
+# Introduction
+
+Function minimization is a very common problem in machine learning algorithms and several mathematical methods were developed to solve this problem. This report describes the implementation of some methods and compares the performance and features of each of them.
+
+Consider the optimization problem to minimize the function $f(x_1, x_2)$ given by:
+
+$$\text{minimize  f}(x_1,x_2) = x_1^2 + 2x_2^2 - 2x_1x_2 - 2x_2$$
+
+We solve this problem using unconstrained optimization algorithms. The contour map shows the range of $f(x_1,x_2)$ in color and each line has the same value, where dark blue indicates the lowest levels.
+
+![Function contour map.](`r paste0(folder, "contour_map.png")`){#id .class width=50% height=50%}
+
+In general, all methods start with arbitrary initial values for $x_1$ and $x_2$ and with an estimation of the step size and the direction of the minimum. Then, the new position is calculated, moving towards the minimum value until a certain criteria is achieved. Hence, the general formula is given by:
+
+\begin {equation}
+	x_{i+1}=x_i+\alpha_i \delta_i
+	(\#eq:xi)
+\end {equation}
+
+where $x_i$ is the value of $x_1$ and $x_2$ in iteration $i$, $\alpha_i$ is the step size and $\delta_i$ is the direction.
+
+A function $f(x_i)$ is at minimum or maximum when $\left \|\bigtriangledown f(x_i)\right\|=0$ and $x_i = \text{arg min}f(x)$. Finding the exact values of $x_i$ that satisfies this condition may require many iterations, so the stop criteria may be the number of iterations or the gradient size becomes smaller than a threshold, $\left \|\bigtriangledown f(x_i)\right\|<\epsilon$. 
+
+In order to compare the performance of different methods, we use standard initial and stop values, which are $(x_1, x_2) = (-6.16961099, 2.44217542)$, $\epsilon=10^{-3}$ and maximum number of iterations $itmax=100$.
+
+The number of iterations may increase significantly with lower gradient size chosen as stop criteria. The algorithm moves around the minimum, varying the gradient size until the minimum $\epsilon$ is achieved. 
+
+# Gradient Descent
+
+The gradient of a function, $\bigtriangledown f(x)$, points to the direction of maximum value and $-\bigtriangledown f(x)$ to the minimum. This is the simplest method, but may require many iterations as the direction may change from point to point.
+
+Algorithm:
+
+1. Define a small value for $\epsilon>0$ as tolerance.
+1. Set arbitrary values for $x_0$
+1. Set initial value $i=0$
+1. **While** $\left \|\bigtriangledown f(x_i) \right \| > \epsilon$ **do**
+1. \ \ \ \ Let $\alpha_i$ be the solution to minimize $f(x_i-\alpha_i \delta_i)$ subject to $\alpha_i>0$
+1. \ \ \ \ Compute $x_{i+1}=x_i-\alpha_i\bigtriangledown f(x_i)$
+1. \ \ \ \ Let $i=i+1$
+
+Gradient descent used 14 iterations to find the minimum with resolution better than $\left \| \bigtriangledown f(x)\right\| < 10^{-3}$. Notice that the gradient size increased in iterations 12 and 13, as highlighted in Table \@ref(tab:gd).
+
+The chart shows the direction changes and the largest minimization in the first four iterations.
+
+```{r gd, echo=FALSE}
+tbl(read.table(paste0(folder,"gradient_descent.csv"), sep = ",", header = TRUE, col.names = cnames), title = "Gradient Descent Iteration Result.", ref = 'gd',r = c(14, 15))
+
+```
+
+![Gradient descent](`r paste0(folder, "gradient_descent.png")`){#id .class width=50% height=50%}
+
+# Bisection
+
+The bisection method is often used in combination with other methods to optimize the step size $\alpha$ and speed up the convergence. The problem of minimization of $f(x)$ is equivalent to minimize
+\begin{equation}
+	h(\alpha)=f(x+\alpha \delta) 
+	(\#eq:h)
+\end{equation}
+
+where $\delta$ is the direction calculated by other methods. The first order derivative of $h(\alpha)$ is
+\begin{equation}
+	h'(\alpha)=\bigtriangledown f(x+\alpha\delta)^\top \delta
+	(\#eq:hl)
+\end{equation}
+
+The value of $\alpha$ that minimizes \@ref(eq:h) lies in the interval $[\alpha_l, \alpha_u]$, such that $h'(\alpha_l)<0$, $h'(\alpha_u)>0$ and $h'(\alpha)= 0$. We can gradually adjust this interval until we find $\alpha$
+
+\begin{equation}
+	\begin{cases}
+	\alpha = \bar\alpha & \text{ if } h'(\bar\alpha)= 0\\ 
+	\alpha \in [\alpha_l,\bar\alpha]& \text{ if } h'(\bar\alpha)>0 \\
+	\alpha \in [\bar\alpha,\alpha_u] & \text{ if } h'(\bar\alpha)<0 
+	\end{cases}  
+	(\#eq:interval)
+\end{equation}
+where
+\begin{equation}
+	\bar{\alpha}=\frac{\alpha_u+\alpha_l}{2}	
+	(\#eq:alphabar)
+\end{equation}
+Since $\delta$ is pointing to $\text {min}f(x)$, we know that $h'(0)<0$ and select $\alpha_l=0$. A simple way to choose $\alpha_u$ is select any starting positive value and double until $h'(\alpha_u)>0$.
+
+The maximum number of iterations to find $|\alpha-\bar{\alpha}|<\epsilon\approx 0$ is given by:
+
+$$\left \lceil log_2\left (\frac{\bar{\alpha}}{\epsilon} \right ) \right \rceil$$
+
+Algorithm:
+
+1. Define $\epsilon\approx 0$ such that $|\alpha-\bar{\alpha}|<\epsilon$.
+1. Define $h'(\alpha)_{min}\approx 0$ as tolerance.
+1. Choose a small random value for $\alpha_u>0$
+1. **while** $\left \| h'(\alpha_u)\right \|<0$  **do**
+1. \ \ \ \ Compute $\alpha_u=2\alpha_u$
+1. Calculate maximum iterations $it_{max}=\left \lceil log_2\left (\frac{\bar{\alpha}}{\epsilon} \right ) \right \rceil$
+1. Let $i=0$
+1. **while** $|h'(\bar{\alpha})|>h'(\alpha)_{min}$ **and** $i<it_{max}$ **do**
+1. \ \ \ \ **if** $h'(\bar{\alpha})=0$ **stop**
+1. \ \ \ \ **if** $h'(\bar{\alpha})>0$ **do** $\alpha_u=\bar{\alpha}$
+1. \ \ \ \ **if** $h'(\bar{\alpha})<0$ **do** $\alpha_l=\bar{\alpha}$
+1. \ \ \ \ Let $i=i+1$
+
+# Newton
+
+Newton's method uses the Hessian, or second order derivative, to find the minimum. It requires less iterations than gradient descent.
+
+The second order Taylor series approximation of $f(x-x_i)$ at point $x_i$ is given by
+\begin{equation}
+	f(x)\approx h(x) = f(x_i)+\bigtriangledown f(x_i)^\top (x-x_i) +\frac{1}{2}(x-x_i)^\top H(x_i)(x-x_i)
+  (\#eq:nt1)
+\end{equation}
+The minimum value of \@ref(eq:nt1) is when the gradient equals to zero:
+\begin{equation}
+  \bigtriangledown h(x)= \bigtriangledown f(x_i) + H(x_i)(x-x_i)=0
+  (\#eq:nt2)
+\end{equation}
+
+Solving this equation for $x$, we find the next value of $x_{i+1}$
+\begin{equation}
+  x_{i+1}=x_i-H(x_i)^{-1}\bigtriangledown f(x_i)
+  (\#eq:nt3)
+\end{equation}
+The similarity with \@ref(eq:xi) is evident, however note that $\delta_i=-H(x_i)^{-1}\bigtriangledown f(x_i)$ may not be a descent direction. Moreover, \@ref(eq:nt3) assumes the Hessian matrix is invertible and positive definite and $f(x)$ is continuously twice differentiable. In general, the Newton method may not converge if $H(x)$ is not invertible.
+
+Algorithm:
+
+1. Define a small value for $\epsilon>0$ as tolerance.
+1. Set arbitrary values for $x_0$
+1. Set initial value $i=0$, $\alpha=1$
+1. **While** $\left \| \bigtriangledown f(x)  \right \| > \epsilon$ **do**
+1. \ \ \ \ Compute $\delta_i = -H(x_i)^{-1}\bigtriangledown f(x_i)$
+1. \ \ \ \ (optional) let $\alpha_i$ be the solution to minimize $f(x_i+\alpha_i \delta_i)$ subject to $\alpha_i>0$
+1. \ \ \ \ Compute $x_{i+1}=x_i+\alpha\delta_i$
+1. \ \ \ \ Let $i=i+1$
+
+Newton's method converges in just two iterations and the plot shows the algorithm goes direct to the minimum.
+
+```{r echo=FALSE}
+tbl(read.table(paste0(folder,"newton.csv"), sep = ",", header = TRUE, col.names = cnames), title = "Newton Method.", ref = 'nwt')
+```
+![Newton method](`r paste0(folder, "newton.png")`){#id .class width=50% height=50%}
+
+
+## Modified Newton
+
+In some cases the Hessian matrix isn't positive definite and the Newton's method doesn't apply. In this case, we can replace $H(x)$ to 
+
+$$\begin{cases}
+M(x_i)=H(x_i) & \text{ if } \lambda_{i,min} > 0 \\ 
+M(x_i)=H(x_i)+(\epsilon -\lambda_{i,min}) & \text{ if } \lambda_{i,min} \leq 0
+\end{cases}$$
+
+where $\lambda_{i,min}$ is the minimum eigenvalue of $H_i(x)$.
+
+In our original problem to minimize \@ref(eq:xi), the minimum eigenvalue $\lambda_{min}$ of $H(x_1,x_2)$ is positive, and the result is identical to Newton's method.
+
+```{r echo=FALSE}
+tbl(read.table(paste0(folder,"newton_modified.csv"), sep = ",", header = TRUE, col.names = cnames), title = "Newton Modified Iteration Result.", ref = 'nm')
+```
+![Newton modified](`r paste0(folder, "newton_modified.png")`){#id .class width=50% height=50%}
+
+# Levenberg-Marquardt
+
+Newton method assumes the Hessian matrix is invertible and the complexity of inverting $O(n^3)$ may become less efficient than gradient descent.
+
+The Levenberg and Marquardt method provides fast convergence using first order derivative when $f(x_i)$ with $i=1,..,n$ can be written in the form:
+
+$$f(x)=\frac{1}{2}\sum_{k=1}^{m}r_k^2(x), \ \begin{cases}
+ m \geq n,\\ 
+r_k(x):\mathbb{R}^n \to \mathbb{R}
+\end{cases}$$
+
+Using calculus, the Hessian matrix of this function can be approximated to
+
+$$H(x)\approx \bigtriangledown r(x)^\top \bigtriangledown r(x)$$
+and the gradient of $f(x)$ is
+
+$$\bigtriangledown f(x)=\bigtriangledown r(x)^\top r(x)$$
+Hence, the new value of $x_i$ is given by:
+
+$$x_{i+1}=x_i-[\bigtriangledown r(x_i)^\top \bigtriangledown r(x_i)]^{-1} \bigtriangledown r(x_i)^\top \bigtriangledown r(x_i)$$
+In our case, we can rewrite \@ref(eq:xi) as
+\begin{align*}
+f(x_1,x_2)  &= x_1^2 + 2x_2^2 - 2x_1x_2 - 2x_2 \\ 
+ &= (x_1-x_2)^2+(x_2-1)^2 \\ 
+ &\approx  r_1^2 + r_2^2 
+\end{align*}
+
+Where
+
+$$\begin{cases}
+r_1 & = x_1-x_2 \\
+r_2 & = x_2-1
+\end{cases}$$
+
+Algorithm:
+
+1. Define a small value for $\epsilon>0$ as tolerance.
+1. Set arbitrary values for $x_0$
+1. Define small arbitrary value for $\mu>0$
+1. Set initial value $i=0$
+1. **While** $\left \| \bigtriangledown f(x)  \right \| > \epsilon$ **do**
+1. \ \ \ \ Compute $\delta_i = -(\bigtriangledown r(x_i)^\top \bigtriangledown r(x_i) + \mu I)^{-1}\bigtriangledown r(x_i)^\top r(x_i)$
+1. \ \ \ \ Let $\alpha_i$ be the solution to minimize $f(x_i+\alpha_i \delta_i)$ subject to $\alpha_i>0$
+1. \ \ \ \ Calculate $x_{i+1}=x_i+\alpha_i \delta_i$
+1. \ \ \ \ Set $i=i+1$
+
+The algorithm converges in three iterations.
+
+```{r echo=FALSE}
+tbl(read.table(paste0(folder,"lm.csv"), sep = ",", header = TRUE, col.names = cnames), title = "Levenberg-Marquardt Method Iteration Result.", ref = 'lm')
+```
+
+![Levenberg-Marquardt](`r paste0(folder, "levenberg.png")`){#id .class width=50% height=50%}
+
+
+# Quasi-Newton Methods
+
+These methods approximates the inverse of the Hessian on each iteration, in an attempt to overcome Newton's method weaknesses.
+
+$$\lim_{i\to\inf}M_i=[H(x)]^{-1}$$
+
+Davidson-Fletcher-Powell - DFP
+\begin{equation}
+  M_{i+1} = M_i + \frac{p_pi_i^\top}{p_i^\top q_i} - \frac{M_iq_iq_i^\top M_i}{q_i^\top M_iq_i}, \ \ \ \ i=0,1,...,n
+  (\#eq:dfp)
+\end{equation}
+
+Broyden-Fletcher-Goldfarb-Shanno - BFGS
+
+\begin{equation}
+  M_{i+1} = M_i + \frac{p_ip_i^\top}{p_i^\top q_i} \left [ 1+\frac{q_i^\top M_iq_i}{p_i^\top q_i}\right ] - \frac{M_iq_ip_i^\top + p_iq_i^\top M_i}{p_i^\top q_i}, \ \ \ \ i=0,1,...,n
+  (\#eq:bfgs)
+\end{equation}
+
+where:
+
+\begin{equation}
+  p_i=\alpha _id_i=y_{i+1}-y_i
+  (\#eq:pi)
+\end{equation}
+\begin{equation}
+  q_i=\bigtriangledown f(y_{i+1})-\bigtriangledown f(y_i)
+  (\#eq:qi)
+\end{equation}
+
+
+Algorithm:
+
+1. Define a small value for $\epsilon>0$ as tolerance.
+1. Set arbitrary values for $x_0$
+1. Define initial symmetric positive definite matrix $M$.
+1. Let $y_0=x_0$, $k=j=1$, $i=0$
+1. **while** $\left \| \bigtriangledown f(y)  \right \| > \epsilon$ **do**
+1. \ \ \ \ $\delta_i = -M\bigtriangledown f(y_i)$
+1. \ \ \ \ let $\alpha_i$ be the solution to minimize $f(y_i+\alpha_i \delta_i)$ subject to $\alpha_i>0$
+1. \ \ \ \ calculate $y_{i+1}=y_i+\alpha_i \delta_i$
+1. \ \ \ \ **if** $j<n$ **do**
+1. \ \ \ \ \ \ \ \ $p_i=\alpha_i \delta_i$
+1. \ \ \ \ \ \ \ \ $q_i=\bigtriangledown f(y_{i+1}) - \bigtriangledown f(y_i)$
+1. \ \ \ \ \ \ \ \ Use \@ref(eq:dfp) or \@ref(eq:bfgs) to calculate $M_{i+1}$
+1. \ \ \ \ \ \ \ \ Let $j=j+1$
+1. \ \ \ \ **else if** $j=n$ **do**
+1. \ \ \ \ \ \ \ \ $x_i=y_{i+1}$, $j=1$, $k=k+1$, $M=I$, where $I$ is the identity matrix.
+1. \ \ \ \ set $i=i+1$
+
+
+DFP converged in 7 iterations and BFGS converged in 3 iterations.
+
+
+```{r echo=FALSE}
+tbl(read.table(paste0(folder,"dfp.csv"), sep = ",", header = TRUE, col.names = cnames), title = "Davidon-Fletcher-Powell.", ref = 'dfp', r = 7)
+```
+![Davidon-Fletcher-Powell](`r paste0(folder, "dfp.png")`){#id .class width=50% height=50%}
+
+
+
+```{r sample, echo=FALSE, results='asis'}
+tbl(read.table(paste0(folder,"bfgs.csv"), sep = ",", header = TRUE, col.names = cnames), title = "Broyden-Fletcher-Goldfarb-Shanno.", ref = 'bfgs')
+```
+![Broyden-Fletcher-Goldfarb-Shanno](`r paste0(folder, "bfgs.png")`){#id .class width=50% height=50%}
+
+# One Step Secant
+
+Since the quasi-Newton algorithms require more storage and computation in each iteration than the conjugate gradient algorithms (explained later), there is need for a secant approximation with smaller storage and computation requirements. The one step secant (OSS) method is an attempt to bridge the gap between the conjugate gradient algorithms and the quasi-Newton (secant) algorithms. This algorithm does not store the complete Hessian matrix; it assumes that at each iteration, the previous Hessian was the identity matrix. This has the additional advantage that the new search direction can be calculated without computing a matrix inverse.^[http://matlab.izmiran.ru/help/toolbox/nnet/backpr11.html]
+
+\begin{equation}
+  A_i=-\left [1+\frac{q_i^\top q_i}{s_i^\top q_i} \right ]\frac{s_i^\top\bigtriangledown f(x_i)}{s^\top q_i}+ \frac{q_i^\top \bigtriangledown f(x_i)}{s_i^\top q_i}
+  (\#eq:a)
+\end{equation}
+
+\begin{equation}
+  B_i = \frac{s_i^\top \bigtriangledown f(x_i)}{s_i^\top q_i}
+  (\#eq:b)
+\end{equation}
+
+\begin{equation}
+  \delta_{i+1}=-\bigtriangledown f(x_i) + A_i s_i + B_iq_i
+  (\#eq:d)
+\end{equation}
+
+where:
+\begin{equation}
+  s_i=x_{i+1}-x_i=p_i,\\ 
+  q_i=\bigtriangledown f(x_{i+1}) - \bigtriangledown f(x_i), \\ 
+  p_i=\alpha_i\delta_i
+  (\#eq:sqp)
+\end{equation}
+
+
+Algorithm: 
+
+1. Define a small value for $\epsilon>0$ as tolerance.
+1. Set arbitrary values for $x_0$
+1. Let $\delta_0=-\bigtriangledown f(x_0)$, $i=0$
+1. **while** $\left \| \bigtriangledown f(x_i)  \right \| > \epsilon$ **do**
+1. \ \ \ \ Use \@ref(eq:d) to compute $\delta_{i+1}$
+1. \ \ \ \ **if** $mod(i, P)=0$ **then** set $\delta_i=\bigtriangledown f(x_i)$
+1. \ \ \ \ Let $\alpha_i$ be the solution to minimize $f(y_i+\alpha_i \delta_i)$ subject to $\alpha_i>0$
+1. \ \ \ \ $x_{i+1}=x_i+\alpha_i\delta_i$
+1. \ \ \ \ $s_i=\alpha_i\delta_i$
+1. \ \ \ \ $q_i=\bigtriangledown f(x_{i+1}) - \bigtriangledown f(x_i)$
+1. \ \ \ \ Let $i=i+1$
+
+One step secant converged in 12 iterations, and the gradient norm increased in 2.
+
+```{r echo=FALSE}
+tbl(read.table(paste0(folder,"oss.csv"), sep = ",", header = TRUE, col.names = cnames), title = "One Step Secant.", ref = 'oss', r = c(5, 12))
+```
+![One step secant](`r paste0(folder, "oss.png")`){#id .class width=50% height=50%}
+
+
+# Conjugate Gradient Methods
+
+These methods are less efficient than quasi-Newton's, however the lower storage requirement compared to the Hessian matrix make them attractive for large problems.^["Nonlinear Programming"]
+
+They converge in at most $n$ iterations for unconstrained quadratic problems in $R^n$. Non quadratic functions can be approximated to quadratic using Taylor series, benefiting from these methods as well.
+
+The basic approach is to create a sequence of $y_i$, such that
+$$y_{i+1}=y_i+\alpha_i\delta_i$$
+ where
+ $$\delta_{i+1}=-\bigtriangledown f(y_{i+1})+\lambda_i\delta_i$$
+
+There are three methods to calculate $\lambda$, the Hestenes-Stiefel (HS), Polak-Ribiere (PR) and Fletcher-Reeves (FR) equations:
+
+\begin{equation}
+  \lambda_i^{HS} = \frac{\bigtriangledown f(x_{i+1})^\top q_i}{\delta_i^\top q_i}
+  (\#eq:hs)
+\end{equation}
+
+\begin{equation}
+  \lambda_i^{PR} = \frac{\bigtriangledown f(x_{i+1})^\top q_i}{\left \| \bigtriangledown f(x_i) \right \| ^2}
+  (\#eq:pr)
+\end{equation}
+
+\begin{equation}
+  \lambda_i^{FR} = \frac{\left \| \bigtriangledown f(x_{i+1}) \right \| ^2}{\left \| \bigtriangledown f(x_i) \right \| ^2}
+  (\#eq:fr)
+\end{equation}
+
+Algorithm:
+
+1. Define a small value for $\epsilon>0$ as tolerance.
+1. Set arbitrary values for $x_0$
+1. Set $y_0=x_0$, $k=j=1$, $i=0$, $\delta_0=-\bigtriangledown f(y_0)$
+1. **while** $\left \| \bigtriangledown f(y_i)  \right \| > \epsilon$ **do**
+1. \ \ \ \ Let $\alpha_i$ be the solution to minimize $f(y_i+\alpha_i \delta_i)$ subject to $\alpha_i>0$
+1. \ \ \ \ Calculate $y_{i+1}=y_i+\alpha_i\delta_i$
+1. \ \ \ \ **if** $j<n$ **do**
+1. \ \ \ \ \ \ \ \ Compute $q_i=\bigtriangledown f(y_{i+1}) - \bigtriangledown f(y_i)$
+1. \ \ \ \ \ \ \ \ Use \@ref(eq:hs), \@ref(eq:pr) or \@ref(eq:fr) to calculate $\lambda_i$
+1. \ \ \ \ \ \ \ \ Compute $\delta_{i+1}=-\bigtriangledown f(y_{i+1})+\lambda_i\delta_i$
+1. \ \ \ \ \ \ \ \ Let $j=j+1$
+1. \ \ \ \ **else**
+1. \ \ \ \ \ \ \ \ Compute $x_k= y_{i+1}$, $\delta=-\bigtriangledown f(y_i)$, $j=1$, $k=k+1$
+1. \ \ \ \ Let $i=i+1$
+
+Conjugate gradient has more iterations with increase in gradient size compared to the previous methods. 
+
+![Hestenes-Stiefel](`r paste0(folder, "hs.png")`){#id .class width=50% height=50%}
+
+```{r echo=FALSE}
+tbl(read.table(paste0(folder,"hs.csv"), sep = ",", header = TRUE, col.names = cnames), title = "Hestenes-Stiefel.", ref = 'hs', r = 12)
+```
+
+![Polak-Ribiere](`r paste0(folder, "pr.png")`){#id .class width=50% height=50%}
+
+```{r echo=FALSE}
+tbl(read.table(paste0(folder,"pr.csv"), sep = ",", header = TRUE, col.names = cnames), title = "Polak-Ribiere.", ref = 'pr', r = c(10, 11, 14, 16, 18))
+```
+
+![Fletcher-Reeves](`r paste0(folder, "fr.png")`){#id .class width=50% height=50%}
+
+```{r echo=FALSE}
+tbl(read.table(paste0(folder,"fr.csv"), sep = ",", header = TRUE, col.names = cnames), title = "Fletcher-Reeves", ref = 'fr', r= c(4, 5, 9, 15, 19, 24, 26))
+```
+# Conclusion
+
+The number of iterations shall be considered when choosing an optimization method, however more important than this is the computational cost, both in terms of memory usage and processing complexity. 
+
+During the search of the minimum, the gradient norm may increase from one iteration to the next, as highlighted in the tables.
+
+Gradient descent is very simple method to minimize a function. It may require many iterations and direction changes to reach the minimum. Variable step size may be used to improve efficiency.
+
+The bisection method can be used to calculate the optimum step size $\alpha$ on each iteration. This provides faster convergence than using fixed step size.
+
+The Newton method is the most efficient, reaching the minimum with the least number of iterations, and it has more restrictions of all methods. Some concerns are the size of the Hessian and the complexity to invert it, the method may not convert and $f(x_{i+1})$ is not necessarily less than $f(x_i)$.
+
+Quasi-Newton provide alternatives to Newton's method if the computational cost of computing the inverse of Hessian is high or doesn't' exist.
+
+Conjugate gradient methods are less efficient and less robust than Newton's and quasi-Newton methods, but are more memory efficient and are preferred in large problems. They converge faster than gradient descent.
+
+One step secant doesn't' store the Hessian matrix and is more computationally efficient than quasi-Newton and conjugate gradient methods.
+
+# Reference {-}
+
+Clodoaldo A. M. Lima, Norton Trevisan (2014) - "Aula 03 - Revisao sobre metodos de otimizacao"
+
+M. S. Bazaraa, H. D. Sherali, C. M. Shetty. (2006) - "Nonlinear Programming - Theory and Algorithms" - 3rd edition
+
+1994-2005 The MathWorks, Inc. - Neural Network Toolbox - http://matlab.izmiran.ru/help/toolbox/nnet/backpr11.html
