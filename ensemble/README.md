@@ -1,5 +1,5 @@
 ## Ensemble
-Python and NumPy implementation of three ensemble methods of multi layer perceptron networks for classification. The code can be adapted for regression.
+Python and NumPy implementation of three ensemble methods of multi layer perceptron (MLP) networks for classification. The code can be adapted for regression.
 
 The training set with ***N*** elements is defined as ***D={(X1, y1), . . ., (XN, yN)}***, where ***X*** is a vector and ***y={0, 1}*** is one-hot encoded.
 
