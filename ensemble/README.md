@@ -64,7 +64,7 @@ decorrelated_train(X, yd, ens, lamb, alternate = False, plot = True, pdir = '', 
 ```
 
 ## Diverse Ensemble Creation by Oppositional Relabeling of Artiflcial Training Examples (DECORATE)
-DECORATE uses an existing "strong" learner (one that provides high accuracy on the training data) to build an efiective diverse committee in a simple, straightforward manner. This is accomplished by adding difierent randomly constructed examples to the training set when building new committee members. These artiflcially constructed examples are given category labels that disagree with the current decision of the committee, thereby easily and directly increasing diversity when a new classifler is trained on the augmented data and added to the committee.
+DECORATE uses an existing "strong" learner (one that provides high accuracy on the training data) to build an effective diverse committee in a simple, straightforward manner. This is accomplished by adding different randomly constructed examples to the training set when building new committee members. These artiflcially constructed examples are given category labels that disagree with the current decision of the committee, thereby easily and directly increasing diversity when a new classifler is trained on the augmented data and added to the committee.
 
 In Decorate, an ensemble is generated iteratively, flrst learning a classifler and then adding it to the current ensemble. 
 
