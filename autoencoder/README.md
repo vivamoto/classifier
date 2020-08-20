@@ -19,7 +19,8 @@ The autoencoder encode the input *X* into the lower dimension *z*, and then deco
     - Derivatives computed in matrix notation and loop
 
 ## Backpropagation
-Derivatives calculation available at https://github.com/vivamoto/Classifier/blob/master/Neural%20Network%20Derivatives.pdf
+Derivatives calculation available at:  
+https://github.com/vivamoto/Classifier/blob/master/Neural_Network_Derivatives.pdf
 
 Example code at the end of the file.
 
