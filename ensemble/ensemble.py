@@ -40,6 +40,14 @@ class obj:
 # Initialize parameters
 # ==========================================
 def ensemble(M = 4, L = 10, maxiter = 1000):
+    """
+    Creates an ensemble object with empty weights and biases.
+    
+    Attributes:
+        M:          number of networks
+        L:          number of hidden layer neurons
+        maxiter:    maximum number of iterations
+    """
     ens = obj()
     ens.M = M               # Number of networks
     ens.L = L               # Number of hidden layer neurons
