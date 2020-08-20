@@ -1,50 +1,40 @@
 # -*- coding: utf-8 -*-
 """
+Consider this problem:
+
+    Min f(x1,x2) = x1^2 + 2.x2^2 - 2.x1.x2 - 2.x2
+
+    Min f(x1, x2) = (x1 - 2)^4 + (x1 - 2.x2)^2
+
+Solve this problem using unconstrained optimization algorithms.
+
+The methods gradient descent, Newton, Newton modified,
+    Levenberg-Marquardt and One Step Secant are deployed in a single function
+    for each method.
+
+The methods Davidon-Fletcher-Powell and Broyden-Fletcher-Goldfarb-Shanno
+    are deployed in function "quasi_newton".
+
+The methods Hestenes-Stiefel, Polak-Ribiere and Fletcher-Reeves are
+    deployed in function "conjugate_gradient"
+
+Examples of usage are available at the end of the code, with random values
+    for x1 and x2. There're also examples from the book "Nonlinear Programming".
+
+#============================================================
 Created on Wed Apr 22 16:07:16 2020
 
 @author: Victor Ivamoto
-"""
-# Start python kernel
-# python -m spyder_kernels.console
-#############################################################
-#
-#                  -  Activity 2  -
-#
-# Consider this problem:
-#
-#     Min f(x1,x2) = x1^2 + 2.x2^2 - 2.x1.x2 - 2.x2
-#
-# Solve this problem using unconstrained optimization algorithms.
-#
-#============================================================
-#
-# The methods gradient descent, Newton, Newton modified,
-# Levenberg-Marquardt and One Step Secant are deployed in a single function
-# for each method.
-#
-# The methods Davidon-Fletcher-Powell and Broyden-Fletcher-Goldfarb-Shanno
-# are deployed in function "quasi_newton".
-#
-# The methods Hestenes-Stiefel, Polak-Ribiere and Fletcher-Reeves are
-# deployed in function "conjugate_gradient"
-#
-# Examples of usage are available at the end of the code, with random values
-# for x1 and x2. There're also examples from the book "Nonlinear Programming".
-#
-#============================================================
-#
-# Reference:
-# - "Nonlinear Programming - Theory and Algorithms"- M. S. Bazaraa,
-# H. D. Sherali, C. M. Shetty.-3rd edition
-#
-# - "Aula 03 - Revisao sobre metodos de otimizacao"
-# Clodoaldo A. M. Lima
-#
-#############################################################
 
+Reference:
+"Nonlinear Programming - Theory and Algorithms"
+M. S. Bazaraa, H. D. Sherali, C. M. Shetty.-3rd edition
+
+"Aula 03 - Revisao sobre metodos de otimizacao"
+Clodoaldo A. M. Lima
+"""
 import numpy as np
 import pandas as pd
-from numpy import ma
 import matplotlib.pyplot as plt
 from matplotlib import ticker, cm
 
@@ -55,7 +45,9 @@ from matplotlib import ticker, cm
 # Create a plot of the function f(x1, x2)
 # with contour lines.
 def plot_function():
-
+    """
+    Create a plot of the function f(x1, x2) with contour lines.
+    """
     # Compute contour lines
     x_1 = np.arange(-10, 10, 0.5)
     x_2 = np.arange(-10, 10, 0.5)
@@ -91,16 +83,26 @@ def plot_function():
 
         plt.show()
 
-
+        return
+    
+    
 #==================================
 # Plot results
 #==================================
 # Plot x1 vs x2 with contour lines
 #
 def plot(df, title, equation = 1):
-    # Input:
-    # df = dataframe with values to be plotted
-    # title = chart title
+    """
+    Plot x1 vs x2 with contour lines.
+    
+    Input
+        df:         dataframe with values to be plotted
+        title:      chart title
+        equation:       1: f(x1, x2) = x1^2 + 2.x2^2 - 2.x1.x2 - 2.x2
+                        2: f(x1, x2) = r1(x)**2 + r2(x)**2 (method Levenberg-Marquardt)
+                        3: f(x1, x2) = (x1 - 2)^4 + (x1 - 2.x2)^2
+
+    """
 
     fig, ax = plt.subplots()
 
@@ -146,6 +148,8 @@ def plot(df, title, equation = 1):
 
     plt.show()
 
+    return
+
 
 #==================================
 # Function, Gradient and Hessian
@@ -157,11 +161,17 @@ def plot(df, title, equation = 1):
 # 2: f(x1, x2) = r1**2 + r2**2 (method Levenberg-Marquardt)
 # 3: f(x1, x2) = (x1 - 2)^4 + (x1 - 2.x2)^2
 def gradient(x, equation = 1):
-    # Input:
-    # x: vector with x1 and x2
-    # equation = 1: f(x1, x2) = x1^2 + 2.x2^2 - 2.x1.x2 - 2.x2
-    # equation = 2: f(x1, x2) = r1(x)**2 + r2(x)**2 (method Levenberg-Marquardt)
-    # equation = 3: f(x1, x2) = (x1 - 2)^4 + (x1 - 2.x2)^2
+    """
+    Compute the gradient and hessian of each equation.
+    
+    Input:
+        x:              vector with initial values x1 and x2
+        equation:       1: f(x1, x2) = x1^2 + 2.x2^2 - 2.x1.x2 - 2.x2
+                        2: f(x1, x2) = r1(x)**2 + r2(x)**2 (method Levenberg-Marquardt)
+                        3: f(x1, x2) = (x1 - 2)^4 + (x1 - 2.x2)^2
+    Output
+        f, g, h:        function, gradient and hessian
+    """
 
     x1 = x[0][0]
     x2 = x[1][0]
@@ -226,6 +236,18 @@ def gradient(x, equation = 1):
 # 1. Gradient descent (slide 28)
 #==================================
 def gradient_descent(x, plot_result = False, verbose = False, save = False):
+    """
+    Minimze equation using gradient descent method.
+    
+    Input:
+        x:              vector. Initial value for x
+        plot_result:    if True creates plot
+        verbose:        if True displays messages
+        save:           if True saves results as csv
+    
+    Output
+        x:              minimum value of equation
+    """
 
     epsilon = 1e-3
     alpha = 0.1
@@ -279,10 +301,15 @@ def gradient_descent(x, plot_result = False, verbose = False, save = False):
 # defined below
 #==================================
 def calc_alpha(x, d, equation = 1):
-    # d = direction
-    # equation = 1: f(x1, x2) = x1^2 + 2.x2^2 - 2.x1.x2 - 2.x2
-    # equation = 2: f(x1, x2) = r1(x)**2 + r2(x)**2 (method Levenberg-Marquardt)
-    # equation = 3: f(x1, x2) = (x1 - 2)^4 + (x1 - 2.x2)^2
+    """
+    Bisection method used to optimize the learning rate (alpha).
+    
+    Input
+        d = direction
+        equation:       1: f(x1, x2) = x1^2 + 2.x2^2 - 2.x1.x2 - 2.x2
+                        2: f(x1, x2) = r1(x)**2 + r2(x)**2 (method Levenberg-Marquardt)
+                        3: f(x1, x2) = (x1 - 2)^4 + (x1 - 2.x2)^2
+    """
 
     epsilon = 1e-3
     hlmin = 1e-3
@@ -351,6 +378,19 @@ def calc_alpha(x, d, equation = 1):
 # 2. Method Newton (slide 41)
 #==================================
 def newton(x, plot_result = False, verbose = False, save = False):
+    """
+    Minimize equation using Newton method.
+    
+    Input:
+        x:              vector. Initial value for x
+        plot_result:    if True creates plot
+        verbose:        if True displays messages
+        save:           if True saves results as csv
+    
+    Output
+        x:              minimum value of equation
+    
+    """
     epsilon = 1e-3
 
     # Step 0
@@ -402,6 +442,18 @@ def newton(x, plot_result = False, verbose = False, save = False):
 # 3. Newton Modified (slide 46)
 #==================================
 def newton_modified(x, plot_result = False, verbose = False, save = False):
+    """
+    Minimize equation using Newton Modified method.
+    
+    Input:
+        x:              vector. Initial value for x
+        plot_result:    if True creates plot
+        verbose:        if True displays messages
+        save:           if True saves results as csv
+    
+    Output
+        x:              minimum value of equation
+    """
     epsilon = 1e-3
 
     f, g, h = gradient(x)
@@ -486,8 +538,18 @@ def newton_modified(x, plot_result = False, verbose = False, save = False):
 # 4. Levenberg-Marquardt (slide 52)
 #==================================
 def lm(x, plot_result = False, verbose = False, save = False):
-    # Input:
-    # x: vector. Initial value for x
+    """
+    Minimize equation using Levenberg-Marquardt method.
+    
+    Input:
+        x:              vector. Initial value for x
+        plot_result:    if True creates plot
+        verbose:        if True displays messages
+        save:           if True saves results as csv
+    
+    Output
+        x:              minimum value of equation
+    """
 
     # Step 0
     epsilon = 1e-3
@@ -553,14 +615,24 @@ def lm(x, plot_result = False, verbose = False, save = False):
 # slide 54-57
 # "Nonlinear Programming", pg 408
 #==================================
-def quasi_newton(x, method = 'dfp', equation = 1, plot_result = False, verbose = False, save = False):
-    # Input:
-    # x: vector. Initial value for x
-    # method = dfp:  Davidon-Fletcher-Powell method
-    # method = bfgs: Broyden-Fletcher-Goldfarb-Shanno method
-    # equation = 1: f(x1, x2) = x1^2 + 2.x2^2 - 2.x1.x2 - 2.x2
-    # equation = 2: f(x1, x2) = r1(x)**2 + r2(x)**2 (method Levenberg-Marquardt)
-    # equation = 3: f(x1, x2) = (x1 - 2)^4 + (x1 - 2.x2)^2
+def quasi_newton(x, method = 'dfp', equation = 1, plot_result = False,
+                 verbose = False, save = False):
+    """
+    Input:
+        x:              vector. Initial value for x
+        method:         'dfp' =  Davidon-Fletcher-Powell method
+                        'bfgs' = Broyden-Fletcher-Goldfarb-Shanno method
+        equation:       1: f(x1, x2) = x1^2 + 2.x2^2 - 2.x1.x2 - 2.x2
+                        2: f(x1, x2) = r1(x)**2 + r2(x)**2 (method Levenberg-Marquardt)
+                        3: f(x1, x2) = (x1 - 2)^4 + (x1 - 2.x2)^2
+        plot_result:    if True creates plot
+        verbose:        if True displays messages
+        save:           if True saves results as csv
+    
+    Output
+        x:              minimum value of equation
+    
+    """
 
 
     # Initialization Step
@@ -652,9 +724,21 @@ def quasi_newton(x, method = 'dfp', equation = 1, plot_result = False, verbose =
 # 6. One Step Secante - OSS (Slide 59-60)
 #==================================
 def OSS(x, plot_result = False, verbose = False, save = False):
-    # Input:
-    # x: vector. Initial value for x
-
+    """
+    Optimize equation using one step secant method.
+    
+    Input
+        x:              vector. Initial value for x
+        plot_result:    if True creates plot
+        verbose:        if True displays messages
+        save:           if True saves results as csv
+    
+    Output
+        x:              minimum value of equation
+        
+    Output
+        x:              optimized values
+    """
     P = x.shape[0]
 
     # Step 1
@@ -735,16 +819,26 @@ def OSS(x, plot_result = False, verbose = False, save = False):
 # Polak-Ribiere - PR   (equation 8.58)
 # Fletcher-Reeves - FR (equation 8.60)
 #==================================
-def conjugate_gradient(x, method = "pr", equation = 1, plot_result = False, verbose = False, save = False):
-    # Input:
-    # x: vector with initial values
-    # method = hs: Hestenes-Stiefel  (equation 8.57)
-    # method = pr: Polak-Ribiere     (equation 8.58)
-    # method = fr: Fletcher-Reeves   (equation 8.60)
-    # equation = 1: f(x1, x2) = x1^2 + 2.x2^2 - 2.x1.x2 - 2.x2
-    # equation = 2: f(x1, x2) = r1(x)**2 + r2(x)**2 (method Levenberg-Marquardt)
-    # equation = 3: f(x1, x2) = (x1 - 2)^4 + (x1 - 2.x2)^2
-
+def conjugate_gradient(x, method = "pr", equation = 1, plot_result = False,
+                       verbose = False, save = False):
+    """
+    Optimizes equation using one of conjugate gradient methods.
+    
+    Input
+        x:              vector with initial values
+        method:         'hs' = Hestenes-Stiefel
+                        'pr' = Polak-Ribiere
+                        'fr' = Fletcher-Reeves
+        equation:       1: f(x1, x2) = x1^2 + 2.x2^2 - 2.x1.x2 - 2.x2
+                        2: f(x1, x2) = r1(x)**2 + r2(x)**2 (method Levenberg-Marquardt)
+                        3: f(x1, x2) = (x1 - 2)^4 + (x1 - 2.x2)^2
+        plot_result:    if True creates plot
+        verbose:        if True displays messages
+        save:           if True saves results as csv
+    
+    Output
+        x:              minimum value of equation
+    """
     # Initialization Step
     epsilon = 1e-3
     y = x
@@ -851,8 +945,6 @@ x = np.array([[1], [4]])
 # Plot f(x1, x2) with contour lines
 # It's useful to see how the function behaves
 plot_function()
-
-cd "D:\\Documentos\\Profissão e Carreira\\Mestrado\\Aprendizado de Máquina\\Atividade_2\\report"
 
 plot_result = True
 verbose = False
