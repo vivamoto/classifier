@@ -6,6 +6,8 @@ Convert categorical values to numeric.
 All methods converts Y ∈ {-1, 1} and returns Y ∈ {0, 1}.  
 Use one-hot coding of Y for multiclass.  
 
+Sample code at the end of the file.
+
 Available models:  
 - traditional SVM  
 - Twin SVM (TW-SVM)  
@@ -29,9 +31,9 @@ RBF kernel tuning:
 ### Commonly used parameters  
 | Parameter | Description |
 |-----------|-------------|
-|	X_train |         Train set, numerical values normalized with min-max or z-score. Categorical values converted to numeric.|
+|	X_train |         Train set, numerical values normalized with min-max or z-score. Convert categorical values to numeric before use.|
 | y_train |         Train set, one-hot encoded. Y ∈ {-1, 1} or ∈ {0, 1} |
-|	X_test  |         Test set, numerical values normalized with min-max or z-score. Categorical values converted to numeric.|
+|	X_test  |         Test set, numerical values normalized with min-max or z-score. Convert categorical values to numeric before use.|
 | y_test  |         Test set, one-hot encoded. Y ∈ {-1, 1} or ∈ {0, 1} |
 |	model|            One of 'svm', 'lssvm', 'twsvm'.|
 |	y_hat|            Predicted values.|
