@@ -1,22 +1,63 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+"""
+Regression for classification
+
+- Linear regression
+- Linear regression with regularization
+- Logistic Regression
+
+    Example in the end of this file
+    
+Author: Victor Ivamoto
+April, 2020
+"""
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+import sklearn.datasets as ds   # Demo dataset
+
+#############################################
+# Auxiliary Methods
+#############################################
+
+# sigmoid function used in
+# binary logistic regression
+def sigmoid(s):
+    sigmoid = np.exp(s) / (1 + np.exp(s))
+    return sigmoid
+
+
 # Stable softmax function
+# Ref: Eli Bendersky website
+# https://eli.thegreenplace.net/2016/the-softmax-function-and-its-derivative/
 def softmax(s, axis = 1):
-  max_s = np.max(s, axis = axis, keepdims = True)
-  e = np.exp(s - max_s)
-  y =  e / np.sum(e, axis = axis, keepdims = True)
-  return y
-# ==================================
-# 2. Linear regression for classification
-# ==================================
+    max_s = np.max(s, axis = axis, keepdims = True)
+    e = np.exp(s - max_s)
+    y =  e / np.sum(e, axis = axis, keepdims = True)
+    return y
+
+
+
+#############################################
+# Linear regression for classification
+#############################################
 # Train the model
-def fit_reg(X, y):
+def regression_train(X, y):
+    """
+    Train linear regression for classification
+    
+    Input
+        X:      train set without bias
+        y:      y in {0, 1}, vector for binary classification or one-hot encoded for multiclass
+    Output
+        w:      regression weights
+    """
     # Add column x0 = 1 for the bias
     X = np.insert(X, 0, 1, axis=1)
+    # Convert y={-1, 1}
+    y = np.where(y == 0, -1 ,y)
     # Compute the weights (w) using the formula in lesson 2, slide 31:
     # w = (X_T * X)^-1 * X_T * y
     w = np.linalg.inv(X.T @ X) @ X.T @ y
@@ -24,30 +65,118 @@ def fit_reg(X, y):
 
 
 # Predict new values
-def fx_reg(X, w):
-    # Predict new values with the optimized weights and
-    # X values from the test set
-
+def regression_predict(X, w):
+    """
+    Predict linear regression for classification
+    
+    Input
+        X:          test set without bias
+        w:          weights matrix
+    Output
+        y_hat:      predicted values
+    """
     # Add column x0 = 1 for the bias
     X = np.insert(X, 0, 1, axis=1)
     if w.shape[1] == 1:
-        y_hat = np.round(X @ w)
+        y_hat = np.sign(X @ w)
+        y_hat = np.where(y_hat == -1, 0, y_hat)
     else:
-        y_hat = X @ w
-        if type(y_hat) is not pd.DataFrame:
-            y_hat = pd.DataFrame(y_hat)
-        for i in range(y_hat.shape[0]):
-            y_hat.iloc[i] = (y_hat.iloc[i] == y_hat.iloc[i].max()) * 1
-    y_hat = np.array(y_hat)
+        y_hat = np.sign(X @ w)
+        y_hat = (y_hat == np.max(y_hat, axis = 1, keepdims = True)) * 1
 
     return y_hat
 
 
+#############################################
+# Logistic Regression
+#############################################
+# Returns the gradient for both binary and
+# multi-class logistic regression.
+# Fixed and variable learning rates (lr) available
+# Implementation of algorithm in slide 79
+def logistic_train(X, y, v=True, binary=True, maxiter=1000, lr=0.1):
+    """
+    Train logistic regression model.
+    
+    Input parameters
+        X:          matrix of coefficients
+        y:          vector of binary outcomes
+        v:          True for variable learning rate (lr)
+        binary:     True for binary classification (sigmoid),
+                    False for multi-class (softmax)
+        maxiter:    maximum number of iterations
+        lr:         learning rate.
+    Output:
+        weights vector
+    """
+    # Insert column of 1s for bias
+    X = np.insert(X, 0, 1, axis=1)
+
+    # Step 1: Initial weights with random numbers
+    np.random.seed(123)
+    if binary:
+        y = np.where(y == 0, -1, y)         # y = {-1, 1}
+        w = np.random.rand(X.shape[1], 1)
+    else:
+        y = np.where(y == -1, 0, y)         # y = {0, 1}
+        w = np.random.rand(X.shape[1], y.shape[1])
+
+    wes = w
+    # Calculate initial gradient (g)
+    g = logistic_derivative(X=X, y=y, w=w, binary=binary)
+    norm_new = np.linalg.norm(g)
+    ites = 0
+    cont = True
+
+    # Step 2: For t = 0, 1, 2, ... do
+    normagrad = 1e-6  # Maximum gradient norm
+    it = 0
+    while it < maxiter and norm_new > normagrad and cont:
+        # Step 3: Calculate the new gradient
+        g = logistic_derivative(X=X, y=y, w=w, binary=binary)
+        # Step 4: Calculate learning rate (lr) for variable
+        # gradient descent and binary classification
+        #if v and binary:
+        lr = logistic_lr(X = X, y = y, w = w, dir = -g, binary = binary)
+        # Step 5: Update weight (w)
+        w = w - lr * g
+
+        # Early stopping
+        # Stop iteraction after 30 bad gradient norms
+        norm_old = norm_new
+        norm_new = np.linalg.norm(g)
+        if norm_new < norm_old:
+            ites = 0
+            cont = True
+            wes = w
+        else:
+            ites += 1
+            if ites == 30:
+                cont = False
+
+        #print(np.linalg.norm(g))
+
+        # Increase the number of iterations
+        it = it + 1
+
+    # Return the weights vector, gradient and error
+    return wes, g
+
+
 # ==================================
-# 3. Logistic regression
+# Logistic regression
 # ==================================
 # Predicted values
-def fx_logistic(X, w, binary):
+def logistic_predict(X, w, binary):
+    """
+    Predict logistic regression
+    Input
+        X:          test set
+        w:          weights matrix
+        binary:     True for binary classification
+    Output
+        y_hat:      predicted values
+    """
     # Add column x0 = 1 for the bias
     X = np.insert(X, 0, 1, axis=1)
     if w.ndim == 1:
@@ -57,13 +186,13 @@ def fx_logistic(X, w, binary):
     if binary:
         # Return 1 if P(y=1|X=x) > 50%, return 0 otherwise
         y_hat = (sigmoid(s=X @ w) >= 0.5) * 1
-
+    
     # Multiclass
     else:
         # Make y_hat prediction with softmax
-        y_hat = softmax(X @ w, axis=0)
+        y_hat = softmax(X @ w, axis=1)
         # Get the maximum value and transpose
-        y_hat = ((y_hat == np.max(y_hat, axis=0)) * 1).T
+        y_hat = (y_hat == np.max(y_hat, axis=1, keepdims = True)) * 1
 
     return y_hat
 
@@ -73,48 +202,37 @@ def fx_logistic(X, w, binary):
 # ==================================
 # Return the sigmoid and softmax derivatives
 # used in logistic regression
-def calc_derivative(X, y, w, binary=True):
-    # Input definition
-    # x: vector of feature coeficients
-    # y: vector of outcomes
-    # w: vector of weights
-    # binary: True for binary classification (sigmoid),
-    #         False for multi-class (softmax)
-    # Output: Gradient of sigmoid or softmax
+def logistic_derivative(X, y, w, binary=True):
+    """
+    Logistic regression derivative.
+    
+    Input definition
+        x:          vector of feature coeficients
+        y:          vector of outcomes
+        w:          vector of weights
+        binary:     True for binary classification (sigmoid),
+                    False for multi-class (softmax)
+    Output
+        Gradient of sigmoid or softmax
+    """
     if binary:
         # Calculate the sigmoid gradient
-        #N = X.shape[0]
         # Aula 2, slide 68
-        #s = 0.
-        #for n in range(N):
-        #    s = s + (y[n] * X[n]) / (1 + np.exp(y[n] * w.T @ X[n]))
-        #g1 = -s / N
         g =-np.mean(y * X / (1 + np.exp(y * X @ w)), axis=0, keepdims=True).T
     else:
         # Calculate softmax gradient
         # Used in multiclass logistic regression
-        # Formula in page 35, definition 4.20
-        # CS480/680–Fall 2018 - University of Waterloo
+        # Equation in page 35, definition 4.20
+        # Ref: Lecture notes CS480/680–Fall 2018 - University of Waterloo
+        # Yaoliang Yu
+        # https://cs.uwaterloo.ca/~y328yu/mycourses/480/note06.pdf
 
         # p: probability of y being 1
-        p = softmax(w.T @ X.T, axis=1)
+        p = softmax(X @ w, axis = 1)
 
         # Calculate the gradient
-        g = X.T @ (p - y.T).T
-
-        N = X.shape[0]
-        g1 = 0.
-        for i in range(N):
-            x_i = np.array([X[i]]).T
-            y_i = np.array([y[i]]).T
-            # p_i = scipy.special.softmax(w.T @ x_i, axis = 1)
-            # Vou testar com minha função, se não der certo volta a linha comentada
-            # p_i = scipy.special.softmax(w.T @ x_i)
-            p_i = softmax(w.T @ x_i, axis=1)
-
-            # Calculate the gradient
-            g1 = g1 + x_i @ (p_i - y_i).T
-
+        g = ((p - y).T @ X).T / len(X)
+        
     return g
 
 
@@ -122,11 +240,22 @@ def calc_derivative(X, y, w, binary=True):
 # 3.2 Logistic: Variable Learning rate (lr)
 # ==================================
 # Compute the variable learning rate of gradient
-# descent used in binary logistic regression
-def calc_lr(X, y, w, d, binary=True):
-    # d = direction
-    # binary: True for binary classification (sigmoid),
-    #         False for multi-class (softmax)
+# descent used in binary logistic regression.
+# Uses the bisection method.
+# Ref: Matlab code from Clodoaldo Lima
+def logistic_lr(X, y, w, dir, binary=True):
+    """
+    Logistic regression learning rate.
+    
+    Input
+        X, y:       train set
+        w:          weights matrix
+        d:          direction
+        binary:     True for binary classification (sigmoid),
+                    False for multi-class (softmax)
+    Output
+        optimal learning rate
+    """
     np.random.seed(1234)
     epsilon = 1e-3
     hlmin = 1e-3
@@ -134,17 +263,20 @@ def calc_lr(X, y, w, d, binary=True):
     lr_u = np.random.rand()  # Upper lr
 
     # New w position
-    wn = w + lr_u * d
+    wn = w + lr_u * dir
     # Calculate the gradient of new position
-    g = calc_derivative(X=X, y=y, w=wn, binary=binary)
+    dJdW = logistic_derivative(X=X, y=y, w=wn, binary=binary)
+    g = dJdW.flatten()
+    d = dir.flatten()
     hl = g.T @ d
     while hl < 0:
         lr_u = 2 * lr_u
         # Calculate the new position
-        wn = w + lr_u * d
+        wn = w + lr_u * dir
         # Calculate the gradient of new position
         # f and h aren't used
-        g = calc_derivative(X=X, y=y, w=wn, binary=binary)
+        dJdW = logistic_derivative(X=X, y=y, w=wn, binary=binary)
+        g = dJdW.flatten()
         hl = g.T @ d
 
 
@@ -157,10 +289,11 @@ def calc_lr(X, y, w, d, binary=True):
     while abs(hl) > hlmin and it < maxiter:
 #        print('maxiter:', maxiter, 'it:', it)
         # Calculate new position
-        wn = w + lr_m * d
+        wn = w + lr_m * dir
         # Calculate the gradient of the new position
         # Note: f and h aren't used
-        g = calc_derivative(X=X, y=y, w=wn, binary=binary)
+        dJdW = logistic_derivative(X=X, y=y, w=wn, binary=binary)
+        g = dJdW.flatten()
         hl = g.T @ d
         if hl > 0:
             # Decrease upper lr
@@ -178,151 +311,89 @@ def calc_lr(X, y, w, d, binary=True):
 
 
 # ==================================
-# 3.3 Logistic: sigmoid function used in
-# binary logistic regression
-# ==================================
-def sigmoid(s):
-    sigmoid = np.exp(s) / (1 + np.exp(s))
-    return sigmoid
-
-
-# ==================================
-# 3.4 Logistic: Gradient Descent
-# ==================================
-# Returns the gradient for both binary and
-# multi-class logistic regression.
-# Fixed and variable learning rates (lr) available
-# Implementation of algorithm in slide 79
-# +++++++++++++++++++++++++++++++++
-def logistic(X, y, v=True, binary=True, maxiter=1000, lr=0.1):
-    # Input parameters
-    # X: matrix of coefficients
-    # y: vector of binary outcomes
-    # v: True for variable learning rate (lr)
-    # binary: True for binary classification (sigmoid),
-    #         False for multi-class (softmax)
-    # maxiter: maximum number of iterations
-    # lr: learning rate.
-    # Output: weights vector
-
-    X = np.insert(X, 0, 1, axis=1)
-    y = np.where(y == 0, -1, y)
-
-    normagrad = 1e-10  # Maximum gradient norm
-
-    np.random.seed(123)
-    # Step 1: Initial weights with random numbers
-    if binary:
-        w = np.random.rand(X.shape[1], 1) * 100
-    else:
-        w = np.random.rand(X.shape[1], y.shape[1]) * 100
-
-    # Calculate initial gradient (g)
-    g = calc_derivative(X=X, y=y, w=w, binary=binary)
-    norm_new = np.linalg.norm(g)
-    ites = 0
-    cont = True
-    # Step 2: For t = 0, 1, 2, ... do
-    lr = 10
-    t = 0
-    while t < maxiter and np.linalg.norm(g) > normagrad and cont:
-        # Increase the number of iterations
-        t = t + 1
-        # Step 3: Calculate the new gradient
-        g = calc_derivative(X=X, y=y, w=w, binary=binary)
-        # Step 4: Calculate learning rate (lr) for variable
-        # gradient descent and binary classification
-        if v and binary:
-            lr = calc_lr(X = X, y = y, w = w, d = -g, binary = binary)
-        # Step 5: Update weight (w)
-        w = w - lr * g
-
-        norm_old = norm_new
-        norm_new = np.linalg.norm(g)
-        if norm_new < norm_old:
-            ites = 0
-            wes = w
-        else:
-            ites += 1
-            if ites == 30:
-                cont = False
-
-        print(np.linalg.norm(g))
-
-    # Return the weights vector, gradient and error
-    return wes, g
-
-
-# ==================================
 # 4. Linear Regression with Regularization
 # ==================================
 # 4.1 Regularization: Cross-validation error
 # ==================================
 # Error function for linear regression
 def error(X, y, w, l, q=1):
-    # Input values:
-    # X: matrix of coefficients
-    # y: vector of outputs
-    # w: vector of weights
-    # l: lambda (scalar)
-    # q: 1 for lasso, 2 for ridge regression
-    # Output: error
-
-    # Formula in slide 43
+    """
+    Input values:
+        X:      matrix of coefficients
+        y:      vector of outputs
+        w:      vector of weights
+        l:      lambda (scalar)
+        q:      1 for lasso, 2 for ridge regression
+    Output
+        error
+    """
+    # Equation in slide 43
     # Least squares
-    y = np.array(y)
-    E = 0.
-    N = X.shape[0]  # Number of observations (rows in X matrix)
-    d = X.shape[1]  # Number of columns in X matrix
-    for i in range(N):
-        s = 0.
-        for j in range(d):
-            s = s + X[i, j] * w[j]
-        E += (s - y[i]) ** 2
-
-    # Calculate regularization term
-    M = w.shape[0]
-    reg = 0.
-    for j in range(M):
-        reg = reg + abs(w[j]) ** q
-
-    # Total error
-    E = E / N + l * reg
-
-    # E = np.mean((X_train @ w - y_train) ** 2) + np.sum(abs(w) ** q)
-    # np.mean((X_train @ np.array([w[:,i]]).T - np.array([y_train[:,i]]).T) ** 2) + np.sum(abs(np.array([w[:,i]]).T))
-    E = np.mean((X @ w - y) ** 2) + l * np.sum(abs(w) ** q)
+    E = np.mean((X @ w - y) ** 2) + l * np.sum(abs(w) ** q, axis = 0)
 
     # Return the error
-    return np.mean(E)
+    return E
 
 
-# ==================================
-# 4.2 Regularization: Cross validation Error
-# ==================================
-# Compute the cross-validation error
-# for binary and multi-class.
-# The error is used to select the best regularization parameter.
+#############################################
+# Linear Regression with Regularization
+#############################################
+# This function calculates the regularization coefficient lambda
+# We choose a grid of lambda values, and compute the cross-validation error
+# for each value of lambda. We then select the tuning parameter value
+# for which the cross-validation error is smallest. Finally, the model
+# is re-fit using all of the available observations and the selected
+# value of the tuning parameter
 # Reference:
 # G. James, D. Witten, T. Hastie, R. Tibshirani:  An Introduction to Statistical Learning
-def cv_error(X, y, w):
-    # Input paramters
-    # X: matrix of coefficients
-    # y: matrix or vector of outcomes
-    # w : matrix or vector of weights
-    try:
-        # Multi-class regression
-        if y.shape(1) > 1:
-            y_hat = pd.DataFrame(X @ w)
-            for i in range(y_hat.shape[0]):
-                y_hat.iloc[i] = (y_hat.iloc[i] == y_hat.iloc[i].max()) * 1
-            y_hat.replace(0, -1, inplace=True)
-    except:
-        # Binary regression
-        y_hat = np.sign(X @ w)
+def regularization(X, y):
+    """
+    Linear regression for classification with regularizaton.
+    Perform grid search with cross validation to find the best regularization factor.
 
-    E = np.mean(y_hat != y)
-    return E
+    Input
+        X:      train set
+        y:      train set, one-hot encoded
+    Output
+        Return the best values: weight, lambda, accuracy and data frame
+    """
+    # Add column x0 = 1 for the bias
+    X = np.insert(X, 0, 1, axis = 1)
+    if type(y) is not np.ndarray:
+        y = np.array(y)
+    # convert y = {-1, 1}
+    y = np.where(y == 0, -1, y)
+    
+    lmin = 0  # Initial regularization factor (lambda) value
+    Emin = 1.  # Initial error value (100%)
+    N = X.shape[1]  # Number of attributes
+    I = np.eye(N)  # Identity matrix
+    
+    # Test several values of lambda(l) and pick the lambda
+    # that miminizes the error (slide 41)
+    
+    # Step 1: choose a grid of lambda values
+    for l in range(1000):
+        
+        # Step 2: Compute the cross-validation error for each lambda
+        E = regularization_cv(X, y, l)
+        
+        # Step 3: Select lambda for smallest cross-validation error
+        if E < Emin:
+            Emin = E
+            lmin = l
+        
+        # Dataframe to create chart
+        if l == 0:
+            df = pd.DataFrame(data = {'Lambda': l, 'Error': [E]})
+        else:
+            df = df.append({'Lambda': l, 'Error': E}, ignore_index = True)
+    
+    # Step 4: Re-fit the model with all samples and best lambda
+    w = np.linalg.inv((lmin / N) * I + X.T @ X) @ X.T @ y
+    
+    # Return the best values: weight, lambda, accuracy and data frame
+    return w, Emin, lmin, df
 
 
 # ==================================
@@ -336,17 +407,21 @@ def cv_error(X, y, w):
 # with 90% and 10% of the original training set size.
 # Reference:
 # G. James, D. Witten, T. Hastie, R. Tibshirani:  An Introduction to Statistical Learning
-def cross_validation(X, y, l, K=10):
-    # Input parameters:
-    # X: trainning set matrix with predictors (features)
-    # y: trainning set vector with outcomes
-    # l: lambda, regularization tuning parameter
-    # K: number of folds
-
-    N = X.shape[0]  # Number of observations
-    d = X.shape[1]  # Number of attributes + 1
-    I = np.eye(d)  # Identity matrix
-    E = np.array([])  # Error array
+def regularization_cv(X, y, l, K=10):
+    """
+    Find best value of regularization factor (lambda) with cross validation
+    Input
+        X:      train set
+        y:      train set, one-hot encoded
+        l:      lambda, regularization factor
+        K:      number of folds
+    Output
+        cross-validation error
+    """
+    N = X.shape[0]      # Number of observations
+    d = X.shape[1]      # Number of attributes + 1
+    I = np.eye(d)       # Identity matrix
+    E = np.array([])    # Error array
 
     # k-fold cross validation
     for k in range(K):
@@ -369,7 +444,7 @@ def cross_validation(X, y, l, K=10):
         w = np.linalg.inv((l / N) * I + X_train.T @ X_train) @ X_train.T @ y_train
 
         # Calculate the cross-validation error
-        err = cv_error(X=X_val, y=y_val, w=w)
+        err = regularization_cv_error(X=X_val, y=y_val, w=w)
         # err = error(X = X_val, y = y_val, w = w, l = l, q = 2)
 
         # Update the error vector
@@ -380,68 +455,49 @@ def cross_validation(X, y, l, K=10):
 
 
 # ==================================
-# 4.4 Linear Regression - Regularization
-# Return weights with regularization
+# 4.2 Regularization: Cross validation Error
 # ==================================
-# This function calculates the regularization coefficient lambda
-# We choose a grid of lambda values, and compute the cross-validation error
-# for each value of lambda. We then select the tuning parameter value
-# for which the cross-validation error is smallest. Finally, the model
-# is re-fit using all of the available observations and the selected
-# value of the tuning parameter
+# Compute the cross-validation error
+# for binary and multi-class.
+# The error is used to select the best regularization parameter.
 # Reference:
 # G. James, D. Witten, T. Hastie, R. Tibshirani:  An Introduction to Statistical Learning
-#
-def regularization(X, y):
-    # Input parameters:
-    # X: matrix of features coefficients in train set
-    # y: vector of outcomes in train set.
+def regularization_cv_error(X, y, w):
+    """
+    Cross validation error
+    Input
+        X:      matrix of coefficients
+        y:      matrix or vector of outcomes
+        w :     matrix or vector of weights
+    """
+    try:
+        # Multi-class regression
+        if y.shape(1) > 1:
+            y_hat = pd.DataFrame(X @ w)
+            for i in range(y_hat.shape[0]):
+                y_hat.iloc[i] = (y_hat.iloc[i] == y_hat.iloc[i].max()) * 1
+            y_hat.replace(0, -1, inplace=True)
+    except:
+        # Binary regression
+        y_hat = np.sign(X @ w)
 
-    # Add column x0 = 1 for the bias
-    X = np.insert(X, 0, 1, axis=1)
-    if type(y) is not np.ndarray:
-        y = np.array(y)
+    E = np.mean(y_hat != y)
+    return E
 
-    lmin = 0  # Initial lambda value
-    Emin = 1.  # Initial error value (100%)
-    N = X.shape[1]  # Number of attributes
-    I = np.eye(N)  # Identity matrix
-
-    # Test several values of lambda(l) and pick the lambda
-    # that miminizes the error (slide 41)
-
-    # Step 1: choose a grid of lambda values
-    for l in np.arange(0, 1000):
-
-        # Step 2: Compute the cross-validation error for each lambda
-        E = cross_validation(X, y, l)
-
-        # Step 3: Select lambda for smallest cross-validation error
-        if E < Emin:
-            Emin = E
-            lmin = l
-
-        # Dataframe to create chart
-        if l == 0:
-            df = pd.DataFrame(data={'Lambda': l, 'Error': [E]})
-        else:
-            df = df.append({'Lambda': l, 'Error': E}, ignore_index=True)
-
-    # Step 4: Re-fit the model with all samples and best lambda
-    w = np.linalg.inv((lmin / N) * I + X.T @ X) @ X.T @ y
-
-    # Return the best values: weight, lambda, accuracy and data frame
-    return w, Emin, lmin, df
 
 
 # ==================================
 # 4.5 Regularization: Plot results
 # ==================================
 # Plot lambda x error from regularization
-def plot(df, pdir, title):
-    # Input:
-    # df = dataframe with values to be plotted
-    # title = chart title
+def plot(df, title, pdir = ''):
+    """
+    Plot lambda x error from regularization
+    Input
+        df:         dataframe with values to be plotted
+        title:      chart title
+        pdir:       directory to save the plot if not empty
+    """
     x = df.Lambda
     y = df.Error
 
@@ -452,5 +508,74 @@ def plot(df, pdir, title):
     plt.xlabel('Lambda')
     plt.ylabel('Error')
     plt.title(title)
-    plt.savefig(pdir + title.replace(' ', '_') + '.png', dpi=300, bbox_inches='tight')
+    if pdir != '':
+        plt.savefig(pdir + title.replace(' ', '_') + '.png', dpi=300, bbox_inches='tight')
     plt.show()
+
+
+if __name__ == '__main__':
+    # Min-max normalization
+    def normalize(X, xmin = 0, xmax = 0):
+        if xmin == 0 or xmax == 0:
+            xmin = np.min(X)
+            xmax = np.max(X)
+        return (X - xmin) / (xmax - xmin), xmin, xmax
+    
+    
+    # ----------------------------
+    # Prepare dataset
+    # ----------------------------
+    # Import dataset
+    data = ds.load_breast_cancer()
+    data = ds.load_wine()
+    
+    X = data.data
+    
+    # Binary
+    if len(data.target_names) == 2:
+        binary = True
+        y = np.array([data.target]).T
+    # Multiclass
+    else:
+        binary = False
+        # One-hot enconding: y = {0, 1}
+        y = np.zeros((data.target.shape[0], 3))
+        y[:, 0] = np.where(data.target == 0, 1, 0)
+        y[:, 1] = np.where(data.target == 1, 1, 0)
+        y[:, 2] = np.where(data.target == 2, 1, 0)
+
+    # Create train and test sets
+    X_train = np.vstack((X[::3, :], X[1::3, :]))
+    y_train = np.vstack((y[::3, :], y[1::3, :]))
+    X_test = X[2::3, :]
+    y_test = y[2::3, :]
+    
+    # Normalize X_train and X_test
+    X_train, xmin, xmax = normalize(X_train)
+    X_test, _, _ = normalize(X_test, xmin, xmax)
+
+    #================================
+    # Linear regression
+    #================================
+    w = regression_train(X_train, y_train)
+    y_hat = regression_predict(X_test, w)
+    acc = np.mean(y_hat == y_test)
+    print('Linear regression accuracy:', acc)
+    
+    #================================
+    # Linear regression with regularization
+    #================================
+    w, Emin, lmin, df = regularization(X_train, y_train)
+    y_hat = regression_predict(X_test, w)
+    acc = np.mean(y_hat == y_test)
+    print('Linear regression with regularization accuracy:', acc)
+
+    #================================
+    # Logistic regression
+    #================================
+    w, g = logistic_train(X_train, y_train, binary = binary)
+    y_hat = logistic_predict(X_test, w, binary = binary)
+    acc = np.mean(y_hat == y_test)
+    print('Logistic regression accuracy:', acc)
+
+    print(1)

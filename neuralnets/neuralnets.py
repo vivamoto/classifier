@@ -169,6 +169,15 @@ def slp_train(X_train, yd, maxiter=1000, plot=True, pdir = '',  DS_name=''):
 # SLP: Predict
 # -----------------------------------
 def slp_predict(X_test, w):
+    """
+    Predict single layer perceptron network.
+    
+    Input
+        X_test:         test set
+        w:              weights matrix
+    Output
+        y_hat:          predicted values
+    """
     y_hat = softmax(X_test @ w.T, axis=1).round()
     return y_hat
 
