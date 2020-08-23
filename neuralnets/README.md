@@ -14,6 +14,8 @@ Sample code at the end of the file.
 - activation function: softmax
 - cost function: cross entropy
 
+![Perceptron result.](./slp_results.png)
+
 ### SLP Usage
 ```
 slp_train(X_train, yd, maxiter=1000, plot=True, pdir = '',  DS_name='')
@@ -50,6 +52,7 @@ slp_predict(X_test, w)
 - 2nd layer: softmax
 - cost function: cross entropy
 
+![MLP Results.](./mlp_results.png)
 ### MLP Features:
 - Early stopping
 - Variable learning rate
