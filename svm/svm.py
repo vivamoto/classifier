@@ -1,24 +1,24 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
- Support Vector Machines (SVM)
+Support Vector Machines (SVM)
 
- Normalize X using min-max or z-score before predicting
- All methods converts Y ∈ [-1, 1] and returns Y ∈ [0, 1]
- Use 1-of-N coding of Y for multiclass
+Normalize X using min-max or z-score before predicting
+All methods converts Y ∈ [-1, 1] and returns Y ∈ [0, 1]
+Use 1-of-N coding of Y for multiclass
 
- AVailable models:
+AVailable models:
    - traditional SVM,
    - Twin SVM (TW-SVM),
    - Least Squares SVM (LS-SVM)
- Binary and Multiclass:
+Binary and Multiclass:
    - One versus One
    - One versus All
- Kernel types:
+Kernel types:
    - linear, polynomial, rbf, erbf, hyperbolic tangent (tanh), linear splines
- QP solver options:
+QP solver options:
    - cvxopt, SciPy optimize
- RBF kernel tuning:
+RBF kernel tuning:
    - soft margin and sigma
 
 Commonly used parameters
@@ -33,10 +33,10 @@ Commonly used parameters
 	pdir:             Plot directory.
 	DS_name:          Dataset name used in plot title and filename.
 	                  Do not include spaces.
-	
- Author: Victor Ivamoto
- August, 2020
- References within the code
+
+Author: Victor Ivamoto
+August, 2020
+References within the code
 """
 import numpy as np
 import pandas as pd
@@ -49,12 +49,12 @@ cvxopt.solvers.options['show_progress'] = False
 import sklearn.datasets as ds
 
 class svm:
-
+    
     def __init__(self, kernel = 'rbf'):
         self.model = 'svm'          # 'svm', 'lssvm', 'twsvm'
         self.method = 'ovo'         # Multi-class method. 'ovo': One vs One, 'ova': One vs All
         # Kernel settings
-        self.kernel_type = 'rbf'    # 'linear', 'poly', 'rbf', 'erbf', 'tanh', 'lspline'
+        self.kernel_type = 'rbf'   # 'linear', 'poly', 'rbf', 'erbf', 'tanh', 'lspline'
         self.b = 1                  # constant multiplier for hyperbolic tangent
         self.c = 1                  # constant sum for polynomial, tangent and linear splines
         self.d = 2                  # polynomial power
@@ -83,6 +83,19 @@ class svm:
     # 0.1 Train any model (SVM, LSSVM, TWSVM)
     # ==================================
     def train(self, X_train, y_train, model):
+        """
+        Train SVM, LSSVM, TWSVM models
+        
+        Input
+            X_train:        train set. Numeric normalized values or categorical values
+                            encoded as numeric.
+            y_train:        train set, y={-1, 1} or y={0, 1}. Vector if binary,
+                            one-hot enconded if multiclass.
+            model:          'svm', 'lssvm', 'twsvm'
+        Output
+           
+            Object with parameters, weights and biases.
+        """
         # Multiclass
         if y_train.shape[1] > 2:
             print('Only binary models, for multi-class use svm-mc')
@@ -102,10 +115,21 @@ class svm:
     # ==================================
     # 0.2 Predict any model (SVM, LSSVM, TWSVM)
     # ==================================
-    def predict(self, X_test, X_train = None, y_train = None, model = None):
-
-        if model != None:
-            self.model = model
+    def predict(self, X_test, X_train = None, y_train = None):
+        """
+        Predict new values.
+        
+        Input
+            X_test:         test set. Numeric normalized values or categorical values
+                            encoded as numeric.
+            X_train:        train set. Numeric normalized values or categorical values
+                            encoded as numeric.
+            y_train:        train set, y={-1, 1} or y={0, 1}. Vector if binary,
+                            one-hot enconded if multiclass.
+        
+        Output
+            Predicted values.
+        """
 
         if self.model == 'svm':
             y_hat= self.svm_predict(X_test, X_train, y_train)
@@ -188,15 +212,19 @@ class svm:
     # 1.1 SVM: Predict
     # ==================================
     def svm_predict(self, X_test, X_train, y_train):
-        # Predict SVM
-        # Input values:
-        #   X:          test set
-        #   X_train:    train set
-        #   y_train:    train set
-        #   alpha:      Lagrange multipliers
-        #   SV:         support vectors
-        # Output:
-        #   y_hat: predicted values
+        """
+        Predict SVM.
+        
+        Input values
+            X_test:         test set. Numeric normalized values or categorical values
+                            encoded as numeric.
+            X_train:        train set. Numeric normalized values or categorical values
+                            encoded as numeric.
+            y_train:        train set, y={-1, 1} or y={0, 1}. Vector if binary,
+                            one-hot enconded if multiclass.
+        Output
+            y_hat:          predicted values
+        """
 
         if y_train.ndim == 1:
             y_train = np.array([y_train]).T
@@ -226,15 +254,29 @@ class svm:
     # 1.2 SVM: Train
     # ==================================
     def svm_fit(self, X_train, y_train):
-        # Train SVM model
-        # Input:
-        # X, y: input values
-        # C:
-        # t: kernel type (see kernel function definition)
-        # b, c, d, sigma: kernel parameters (see kernel funciton definition)
-        # Output:
-        # SV: support vectors
-        # alpha: Lagrange multipliers
+        """
+        Train SVM model. Parameters defined in the svm object. Trained values 
+        stored in the svm object.
+        
+        Input
+            X_train:        train set. Numeric normalized values or categorical
+                            values encoded as numeric.
+            y_train:        train set, y={-1, 1} or y={0, 1}. Vector if binary,
+                            one-hot enconded if multiclass.
+        SVM parameter
+            C:              SVM soft margin
+        Kernel parameters
+            t:              kernel type: 'linear', 'poly', 'rbf', 'erbf','tanh',
+                            'lspline'
+            b:              constant multiplier for hyperbolic tangent
+            c:              constant sum for polynomial, hyperbolic tangent and
+                            linear splines
+            d:              polynomial and linear splines power indicator
+            sigma:          free parameter for RBF and exponential base
+
+        Output
+            Trained model stored in svm object.
+        """
 
         y_train = np.where(y_train == 0, -1, y_train)
         N, m = X_train.shape
@@ -274,6 +316,20 @@ class svm:
     # 2.1 LSSVM: Predict
     # ==================================
     def lssvm_predict(self, X_test, X_train, y_train):
+        """
+        Predict LS-SVM values.
+        
+        Input
+            X_test:         test set. Numeric normalized values or categorical values
+                            encoded as numeric.
+            X_train:        train set. Numeric normalized values or categorical values
+                            encoded as numeric.
+            y_train:        train set, y={-1, 1} or y={0, 1}. Vector if binary,
+                            one-hot enconded if multiclass.
+        Output
+            y_hat:          predicted values
+        """
+        
         y_train = np.where(y_train == 0, -1, y_train)
 
         y_hat = np.sign(np.sum(self.alpha * y_train * self.kernel(X_train, X_test), axis=0,
@@ -287,6 +343,30 @@ class svm:
     # 2.2 LSSVM: Train
     # ==================================
     def lssvm_fit(self, X_train, y_train):
+        """
+        Train LS-SVM model. Parameters defined in the svm object. Trained values 
+        stored in the svm object.
+        
+        Input
+            X_train:        train set. Numeric normalized values or categorical
+                            values encoded as numeric.
+            y_train:        train set, y={-1, 1} or y={0, 1}. Vector if binary,
+                            one-hot enconded if multiclass.
+        SVM parameter
+            C:              SVM soft margin
+        Kernel parameters
+            t:              kernel type: 'linear', 'poly', 'rbf', 'erbf','tanh',
+                            'lspline'
+            b:              constant multiplier for hyperbolic tangent
+            c:              constant sum for polynomial, hyperbolic tangent and
+                            linear splines
+            d:              polynomial and linear splines power indicator
+            sigma:          free parameter for RBF and exponential base
+
+        Output
+            Trained model stored in svm object.
+        """
+        
         y_train = np.where(y_train == 0, -1, y_train)
 
         N = X_train.shape[0]
@@ -339,7 +419,15 @@ class svm:
     # ==================================
     # Paper documentation
     def twsvm_predict(self, X_test):
-        # Input paramters:
+        """
+        Predict TW-SVM values.
+        Input
+            X_test:         test set. Numeric normalized values or categorical values
+                            encoded as numeric.
+        Output
+            y_hat:          predicte values.
+        """
+        # Input parameters:
         # z1, z2
         # Ct
 
@@ -375,6 +463,14 @@ class svm:
     # ==================================
     # Prof. Clodoaldo explanation
     def twsvm_predict_clodoaldo(self, X_test):
+        """
+        Predict TW-SVM values
+        Input
+            X_test:         test set. Numeric normalized values or categorical values
+                            encoded as numeric.
+        Output
+            y_hat:          predicted values.
+        """
 
         u1 = self.z1[:-1]   #
         b1 = self.z1[-1:]   # bias
@@ -448,17 +544,29 @@ class svm:
     # I: identity matrix of size (n+1) x (n+1)
     # epsilon x I: regularization term
     def twsvm_fit(self, X_train, y_train):
-        # Input parameters:
-        # X, y: matrix. y = {-1, 1}
-        # c1: alpha max value
-        # kernel_type: 1 = linear
-        #              2 = polynomial
-        #              3 = rbf
-        # solver: cvxopt = CVXOPT
-        #         optimizer = Scipy
-        # Output:
-        # Ct, z1 and z2: parameters for prediction
-        #
+        """
+        Train TWSVM model. Parameters defined in the svm object. Trained values 
+        stored in the svm object.
+        Input
+            X_train:        train set. Numeric normalized values or categorical
+                            values encoded as numeric.
+            y_train:        train set, y={-1, 1} or y={0, 1}. Vector if binary,
+                            one-hot enconded if multiclass.
+        TWSVM parameter
+            c1, c2:         TWSVM soft margin
+            solver:         'cvxopt' = CVXOPT, 'optimizer' = SciPy
+        Kernel parameters
+            t:              kernel type: 'linear', 'poly', 'rbf', 'erbf','tanh',
+                            'lspline'
+            b:              constant multiplier for hyperbolic tangent
+            c:              constant sum for polynomial, hyperbolic tangent and
+                            linear splines
+            d:              polynomial and linear splines power indicator
+            sigma:          free parameter for RBF and exponential base
+
+        Output
+            Trained model stored in svm object.
+        """
         y_train = np.where(y_train == 0, -1, y_train)
         if y_train.ndim == 1:
             y_train = np.array([y_train]).T
@@ -531,27 +639,36 @@ class svm:
     # A Comparison of Methods for Multi-class Support Vector Machines
     # Chih-Wei Hsu and Chih-Jen Lin
     def svm_mc(self, X_train, y_train, X_test, y_test):
-        # Input parameters
-        #   model:          svm, twsvm, lssvm
-        #   method:         ono = one vs one
-        #                   ova = one vs all
-        #   kernel_type:    linear, poly, rbf, erbf, tan, fourier, lspline
-        #   solver:         cvxopt = cvxopt library
-        #                   optimize = SciPy optimize
-        # SVM parameters
-        #   C:              SVM soft margin
-        # TWSVM parameters (see reference)
-        #   c1:             soft margin 1
-        #   c2:             soft margin 2
-        # Kernel parameters (see function definition)
-        #   b:              constant multiplier
-        #   c:              constant adder
-        #   d:              Polynomial power
-        #   sigma:          RBF kernel sigma
-        #
-        # Output
-        #   y_hat: predicted values
-
+        """
+        Input
+            X_train:        train set. Numeric normalized values or categorical values
+                            encoded as numeric.
+            y_train:        train set, y={-1, 1} or y={0, 1}. Vector if binary,
+                            one-hot enconded if multiclass.
+            X_test:         test set. Numeric normalized values or categorical values
+                            encoded as numeric.
+            y_test:         test set, y={-1, 1} or y={0, 1}. Vector if binary,
+                            one-hot enconded if multiclass.
+        Input parameters
+            model:          'svm', 'twsvm', 'lssvm'
+            method:         'ono' = one vs one
+                            'ova' = one vs all
+            solver:         'cvxopt' = cvxopt library
+                            'optimize' = SciPy optimize
+        SVM parameters
+            C:              SVM soft margin
+        TWSVM parameters
+            c1:             soft margin 1
+            c2:             soft margin 2
+        Kernel parameters
+            kernel_type:    'linear', 'poly', 'rbf', 'erbf', 'tanh', 'lspline'
+            b:              constant multiplier
+            c:              constant adder
+            d:              Polynomial power
+            sigma:          RBF kernel sigma
+        Output
+            Trained model stored in svm object.
+        """
         if type(y_train) is not np.ndarray:
             y_train = np.array(y_train)
 
@@ -581,7 +698,7 @@ class svm:
 
                     # Train and predict
                     self.train(X1, y1, self.model)            # Train
-                    y = self.predict(X2, X1, y1, self.model)  # Predict
+                    y = self.predict(X2, X1, y1)  # Predict
 
                     # Keep predictions in a matrix
                     if k == 0:
@@ -628,7 +745,7 @@ class svm:
 
                 # Train and predict
                 self.train(X1, y1, self.model)  # Train
-                y = self.predict(X2, X1, y1, self.model)  # Predict
+                y = self.predict(X2, X1, y1)  # Predict
 
                 # Save predictions in a matrix
                 if i == 0:
@@ -663,12 +780,6 @@ class svm:
         nc = y_train.shape[1]   # Number of classes
         I = np.eye(d)           # Identity matrix
         E = np.array([])        # Error array
-        self.c1 = 1             # TWSVM soft margin 1
-        self.c2 = 1             # TWSVM soft margin 2
-        self.C = 1              # SVM soft margin
-        self.b = 1              # kernel parameter
-        self.c = 1              # kernel parameter
-        self.d = 2              # kernel parameter
         C_max = None            # Keep max C  (SVM soft margin)
         c1_max = None           # Keep max c1 (TWSVM soft margin)
         c2_max = None           # Keep max c2 (TWSVM soft margin)
@@ -810,40 +921,45 @@ class svm:
         if nc == 1:
             # Traditional SVM
             if self.model == 'svm':
-                self.svm_fit(X_train, y_train)                    # Train
+                self.svm_fit(X_train, y_train)                         # Train
                 y_hat = self.svm_predict(X_test, X_train, y_train)     # Predict
             # LS-SVM
             elif self.model == 'lssvm':
-                self.lssvm_fit(X_train, y_train)                  # Train
+                self.lssvm_fit(X_train, y_train)                       # Train
                 y_hat = self.lssvm_predict(X_test, X_train, y_train)   # Predict
             elif self.model == 'twsvm':
-                self.twsvm_fit(X_train, y_train)  # Train
-                y_hat = self.twsvm_predict(X_test)     # Predict
+                self.twsvm_fit(X_train, y_train)        # Train
+                y_hat = self.twsvm_predict(X_test)      # Predict
         # Multi-class
         else:
             y_hat = self.svm_mc(X_train, y_train, X_test, y_test)
         # ----------------------------
         # 3. Plot CV Accuracy, C and Sigma
         # ----------------------------
+        # Reference:
+        # https://matplotlib.org/3.1.1/gallery/lines_bars_and_markers/scatter_with_legend.html
+        # https://stackoverflow.com/questions/4700614/how-to-put-the-legend-out-of-the-plot
         if plot:
-            plt.figure()
-            if self.model in ['svm', 'lssvm']:
-                plt.scatter('C', 'Sigma', c='Accuracy', data=plotData)
-                plt.xlabel('Soft margin C')
-                plt.ylabel('Sigma')
-                plt.title(self.model.upper() + ' - ' + DS_name.title())
-            elif self.model == 'twsvm':
-                plt.scatter('C1', 'C2', s='Sigma', c='Accuracy', data=plotData)
-                plt.xlabel('Soft margin C1')
-                plt.ylabel('Soft margin C2')
-                plt.title('TWSVM Tuning - ' + DS_name.title())
-            plt.savefig(pdir + DS_name + '_' + self.model + '_tuning.png', dpi=300, bbox_inches='tight')
-            plt.show()
+            fig, ax = plt.subplots()
+            scatter = ax.scatter('C', 'Sigma', c = 'Accuracy', data=plotData)
+            plt.title(self.model.upper() + ' - ' + DS_name.title())
+            plt.xlabel('Soft margin C')
+            plt.ylabel('Sigma')
+            plt.yscale('log')
+            plt.xscale('log')
+            # Shrink current axis by 20%
+            box = ax.get_position()
+            ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+            # Put a legend to the right of the current axis
+            ax.legend(*scatter.legend_elements(), bbox_to_anchor = (1.04, 1),
+                                 loc = 'upper left', title = "Accuracy")
 
-        # ----------------------------
-        # 4. Save tested parameters to file
-        # ----------------------------
-        plotData.to_csv(pdir + DS_name + "_" + self.model + "_tuning.csv", index=False, decimal=',', sep='\t')
+            # Save plot and results
+            if pdir != '':
+                plt.savefig(pdir + DS_name + '_' + self.model + '_tuning.png',
+                            dpi=300, bbox_inches='tight')
+                plotData.to_csv(pdir + DS_name + "_" + self.model + "_tuning.csv", index=False, decimal=',', sep='\t')
+            plt.show()
 
         return y_hat
 
@@ -864,12 +980,13 @@ class svm:
         # 1. Train SVM with linear, polynomial and rbf kernels
         # ----------------------------
         for model in ['svm', 'lssvm', 'twsvm']:
+            self.model = model
             for kernel_type in ['linear', 'poly', 'rbf']:
                 self.kernel_type = kernel_type
                 # Train
                 self.train(X_train, y_train, model)
                 # Predict
-                y_hat = self.predict(X_test, X_train, y_train, model)
+                y_hat = self.predict(X_test, X_train, y_train)
                 # Accuracy
                 acc = (100 * np.mean(y_hat == y_test)).round(2)
                 results = results.append({'Dataset': DS_name.title(),
@@ -897,7 +1014,8 @@ class svm:
     # 6.2 Multiclass
     # ==================================
     # Multi-class SVM, LSSVM and TWSVM training
-    def multi_mc(self, X_train, y_train, X_test, y_test, results, tune=True, plot=True, pdir=''):
+    def multi_mc(self, X_train, y_train, X_test, y_test, results, tune=True,
+                 DS_name = 'Iris', plot=True, pdir=''):
         # DS_name: dataset name, e.g. 'Diabetes'
         # results: dataframe with test results
         # ----------------------------
@@ -913,40 +1031,25 @@ class svm:
                     y_hat = self.svm_mc(X_train, y_train, X_test, y_test)
                     acc = (100 * np.mean(y_hat == y_test)).round(2)
 
-                    results = results.append({'Dataset': 'Iris',
+                    results = results.append({'Dataset': DS_name,
                                               'class': 'overall',
                                               'Method': model.upper(),
                                               'kernel': kernel_type,
                                               'ovo-ova': method,
                                               'Accuracy': acc},
-                                             ignore_index=True)
+                                              ignore_index=True)
 
                     # Accuracy for each class
                     acc = (100 * np.mean(pd.DataFrame(y_hat) == y_test)).round(2)
 
-                    results = results.append({'Dataset': 'Iris',
-                                              'class': 'setosa',
-                                              'Method': model.upper(),
-                                              'kernel': kernel_type,
-                                              'ovo-ova': method,
-                                              'Accuracy': acc[0]},
-                                             ignore_index=True)
-
-                    results = results.append({'Dataset': 'Iris',
-                                              'class': 'versicolor',
-                                              'Method': model.upper(),
-                                              'kernel': kernel_type,
-                                              'ovo-ova': method,
-                                              'Accuracy': acc[1]},
-                                             ignore_index=True)
-
-                    results = results.append({'Dataset': 'Iris',
-                                              'class': 'virginica',
-                                              'Method': model.upper(),
-                                              'kernel': kernel_type,
-                                              'ovo-ova': method,
-                                              'Accuracy': acc[2]},
-                                             ignore_index=True)
+                    for k in range(2):
+                        results = results.append({'Dataset': DS_name,
+                                                  'class': 'Class ' + str(k),
+                                                  'Method': model.upper(),
+                                                  'kernel': kernel_type,
+                                                  'ovo-ova': method,
+                                                  'Accuracy': acc[k]},
+                                                  ignore_index=True)
 
         # ----------------------------
         # 2. Tune RBF kernel using grid search and cross validation
@@ -955,47 +1058,35 @@ class svm:
             for model in ['svm', 'twsvm', 'lssvm']:
                 self.model = model
                 y_hat = self.tune_rbf(X_train, y_train, X_test, y_test, K=5,
-                                 plot=plot, pdir=pdir, DS_name='Iris')
+                                 plot=plot, pdir=pdir, DS_name=DS_name)
                 acc = (100 * np.mean(y_hat == y_test)).round(2)
-                results = results.append({'Dataset': 'Iris',
+                results = results.append({'Dataset': DS_name,
                                           'class': 'overall',
                                           'Method': model.upper(),
                                           'kernel': 'Tuned rbf',
                                           'Accuracy': acc},
-                                         ignore_index=True)
+                                          ignore_index=True)
                 # Accuracy for each class
                 acc = (100 * np.mean(pd.DataFrame(y_hat) == y_test)).round(2)
 
-                results = results.append({'Dataset': 'Iris',
-                                          'class': 'setosa',
-                                          'Method': model.upper(),
-                                          'kernel': 'Tuned rbf',
-                                          'Accuracy': acc[0]},
-                                         ignore_index=True)
-
-                results = results.append({'Dataset': 'Iris',
-                                          'class': 'versicolor',
-                                          'Method': model.upper(),
-                                          'kernel': 'Tuned rbf',
-                                          'Accuracy': acc[1]},
-                                         ignore_index=True)
-
-                results = results.append({'Dataset': 'Iris',
-                                          'class': 'virginica',
-                                          'Method': model.upper(),
-                                          'kernel': 'Tuned rbf',
-                                          'Accuracy': acc[2]},
-                                         ignore_index=True)
+                for k in range(2):
+                    results = results.append({'Dataset': DS_name,
+                                              'class': 'Class ' + str(k),
+                                              'Method': model.upper(),
+                                              'kernel': 'Tuned rbf',
+                                              'Accuracy': acc[k]},
+                                              ignore_index=True)
 
         return results
-
 
 
 #===============================
 # Demo
 #===============================
 if __name__ == '__main__':
+    # ----------------------------
     # Min-max normalization
+    # ----------------------------
     def normalize(X, xmin = 0, xmax = 0):
         if xmin == 0 or xmax == 0:
             xmin = np.min(X)
@@ -1006,15 +1097,24 @@ if __name__ == '__main__':
     # Prepare dataset
     # ----------------------------
     # Import dataset
-    data = ds.load_iris()
+    data = ds.load_breast_cancer()  # binary classification
+    data = ds.load_iris()           # multiclass
+    data = ds.load_wine()           # multiclass
 
     X = data.data
 
-    # One-hot enconding: y = {0, 1}
-    y = np.zeros((data.target.shape[0], 3))
-    y[:, 0] = np.where(data.target == 0, 1, 0)
-    y[:, 1] = np.where(data.target == 1, 1, 0)
-    y[:, 2] = np.where(data.target == 2, 1, 0)
+    # Binary
+    if len(data.target_names) == 2:
+        binary = True
+        y = np.array([data.target]).T
+    # Multiclass
+    else:
+        binary = False
+        # One-hot enconding: y = {0, 1}
+        y = np.zeros((data.target.shape[0], 3))
+        y[:, 0] = np.where(data.target == 0, 1, 0)
+        y[:, 1] = np.where(data.target == 1, 1, 0)
+        y[:, 2] = np.where(data.target == 2, 1, 0)
 
     # Create train and test sets
     X_train = np.vstack((X[::3, :], X[1::3, :]))
@@ -1026,9 +1126,9 @@ if __name__ == '__main__':
     X_train, xmin, xmax = normalize(X_train)
     X_test, _, _ = normalize(X_test, xmin, xmax)
 
-    #===================================
-    # SVM
-    #===================================
+    # ----------------------------
+    # Settings
+    # ----------------------------
     fit = svm()
     fit.model = 'svm'           # 'svm', 'lssvm', 'twsvm'
     fit.method = 'ovo'          # Multi-class method. 'ovo': One vs One, 'ova': One vs All
@@ -1044,43 +1144,47 @@ if __name__ == '__main__':
     # SVM settings
     fit.C = 10                  # soft margin
     fit.solver = 'optimize'     # Quadratic problem solver. 'cvxopt' or 'optimize'
-    #
+    # Predicted values
     fit.alpha = None            # Lagrange multiplier (SVM and LSSVM)
     fit.SV = None               # Support vectors
     fit.bias = 1                # bias
 
-    #===================================
-    # SVM
-    #===================================
-    fit.model = 'svm'
-    y_hat = fit.svm_mc(X_train, y_train, X_test, y_test)
+    # ----------------------------
+    # 1. Train and predict
+    # ----------------------------
+    model = 'svm'       # 'svm', 'lssvm', 'twsvm'
+    if binary:
+        fit.train(X_train, y_train, model = model)
+        y_hat = fit.predict(X_test, X_train, y_train)
+    else:
+        fit.model = model
+        y_hat = fit.svm_mc(X_train, y_train, X_test, y_test)
     acc = np.mean(y_hat == y_test)
-    print('SVM Accuracy:', acc)
+    print('Accuracy:', acc)
     
-    #===================================
-    # LS-SVM
-    #===================================
-    fit.model = 'lssvm'
-    y_hat = fit.svm_mc(X_train, y_train, X_test, y_test)
+    # ----------------------------
+    # 2. Tune RBF kernel: grid search and cross validation
+    # ----------------------------
+    fit.model = 'svm'   # possible values: 'svm', 'lssvm', 'twsvm'
+    y_hat = fit.tune_rbf(X_train, y_train, X_test, y_test, K = 5, plot = True,
+                         pdir = '', DS_name = 'Test dataset')
     acc = np.mean(y_hat == y_test)
-    print('LS-SVM Accuracy:', acc)
+    print('Tuned RBF kernel Accuracy:', acc)
 
+    # ----------------------------
+    # 3. Multiple tests - train all models
+    # ----------------------------
+    # Train SVM, LSSVM, TWSVM with linear, polynomial and RBF kernels.
+    # Tune RBF kernel using grid search and cross validation.
+    # This process takes some minutes to complete.
+    results = pd.DataFrame()
+    if binary:
+        results = fit.multi_svm(X_train, y_train, X_test, y_test, DS_name = 'Test dataset',
+                      results = results, tune = True, plot = True, pdir = '')
+    else:
+        results = fit.multi_mc(X_train, y_train, X_test, y_test, DS_name = 'Test dataset',
+                        results = results, tune = True, plot = True, pdir = '')
 
-    #===================================
-    # TW-SVM
-    #===================================
-    fit.model = 'twsvm'
-    y_hat = fit.svm_mc(X_train, y_train, X_test, y_test)
-    acc = np.mean(y_hat == y_test)
-    print('TW-SVM Accuracy:', acc)
-
-    #===================================
-    # Multi-class
-    #===================================
-
+    print(results)
     
-    #===================================
-    #
-    #===================================
-
     print(1)
