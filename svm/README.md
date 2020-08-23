@@ -8,7 +8,7 @@ Use one-hot coding of Y for multiclass.
 
 Sample code at the end of the file.
 
-## Tune RBF kernel with grid search and cross validation
+## RBF kernel tune with grid search and cross validation
 ![Grid search to tune RBF kernel](./svm_grid_search.png)
 
 ## Features
