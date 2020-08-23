@@ -479,7 +479,6 @@ if __name__ == '__main__':
     # ============================
     # Perform grid search to find best number of neurons
     # in layers 1 and 2
-    plotData = pd.DataFrame(columns = ['L1', 'L2', 'MSE'])  # Vector of MSE
     mse_min = np.inf
     l1_min = 0
     l2_min = 0
@@ -487,7 +486,7 @@ if __name__ == '__main__':
     L1 = 2 * L2             # Number of 1st layer neurons
     for l1 in range(1, L1 + 1, 2):
         for l2 in range(1, L2 + 1):
-            w = train(X_train, L1 = l1, L2 = l2, plot = True)
+            w = train(X_train, L1 = l1, L2 = l2, plot = False)
             z, x_hat = encode(X_test, w)
             mse = np.mean((x_hat - X_test) ** 2)
             

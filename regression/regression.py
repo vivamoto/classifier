@@ -526,8 +526,8 @@ if __name__ == '__main__':
     # Prepare dataset
     # ----------------------------
     # Import dataset
-    data = ds.load_breast_cancer()
-    data = ds.load_wine()
+    data = ds.load_breast_cancer()  # binary classification
+    data = ds.load_wine()           # multiclass
     
     X = data.data
     
