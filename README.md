@@ -11,4 +11,4 @@ The **Neural_Network_Derivatives.pdf** document contains calculation of the deri
 The **optimization** folder contains first and second order methods used in machine learning backpropagation.
 
 ### Acknowledgment
-I would like to acknowledge my professor, Dr Clodoaldo A. Moraes Lima, for his guidance and support during the machine learning course at Universidade de Sao Paulo.
+I would like to acknowledge professor Clodoaldo A. Moraes Lima for his guidance and support during the machine learning course at Universidade de Sao Paulo.
