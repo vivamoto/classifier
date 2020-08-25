@@ -71,3 +71,5 @@ Chih-Wei Hsu and Chih-Jen Lin
 A Practical Guide to Support Vector Classification.  
 C.-W.. Hsu, C.-C. Chang, C.-J. Lin (2016).  
 https://www.csie.ntu.edu.tw/~cjlin/papers/guide/guide.pdf  
+
+[![DOI](https://zenodo.org/badge/279084447.svg)](https://zenodo.org/badge/latestdoi/279084447)
