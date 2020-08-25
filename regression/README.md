@@ -80,13 +80,11 @@ https://cs.uwaterloo.ca/~y328yu/mycourses/480/note06.pdf
         
 MATLAB code from Clodoaldo Lima  
 
-Lecture notes SIN5016-Machine Learning - Universidade de Sao Paulo  
-Clodoaldo Lima  
+Lima, C.A.M., 2020, *Aula 02 - Modelos Lineares*, lecture notes, Universidade de Sao Paulo, delivered April, 2020.
 
 Eli Bendersky website  
 https://eli.thegreenplace.net/2016/the-softmax-function-and-its-derivative/
 
 
-
-
+[![DOI](https://zenodo.org/badge/279084447.svg)](https://zenodo.org/badge/latestdoi/279084447)
 
