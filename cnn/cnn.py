@@ -3,159 +3,171 @@
 """
 Convolutional Neural Network
 
+Flexible architecture: setup the number of layers
+- Convolution layer
+- Pooling layer
+- Full connected layer
 
-Author: Victor Ivamoto
+Activation functions: relu and sigmoid
+Output layer: softmax
+
+Features:
+- dropout
+- regularization
+- minibatch
+- momentum
+
+Sample code in the end of this file.
+
+Original MATLAB code:
+https://github.com/ClodoaldoLima/Convolutional-Neural-Networks---Matlab
+
+Author: Clodoaldo A. M. Lima
+Translated to Python by Victor Ivamoto, Wesley Ramos
+Translated to English: Victor Ivamoto
 July, 2020
 """
+
 import numpy as np
-from numba import vectorize
 import pandas as pd
 import matplotlib.pyplot as plt
 from numba import jit, cuda
-from scipy.ndimage import rotate
 
 class obj:
     pass
 
 
-def sub2ind(array_shape, rows, cols):
-    ind = cols * array_shape[0] + rows
-    return ind
+# *************************************************************
+# Feedforward
+# ************************************************************
+def ff_conv(images, W, b, strider, fativ):
+    """
+    Convolution layer
+    
+    Args:
+        images:         array (dimX x dimY x numCanais x numImagens), where:
+                        dimX, dimY:     image size
+                        numCanais:      number of channels
+                        numImagens:     number of images
 
+        W:              (dimFiltroX x dimFiltroY x numCanais x numFilters)
+        b:              bias
+        strider:        strider size
+        fativ:          activtion function, 'relu' or 'sig'
 
-def calc_delta(delta, W, dfativ, fativ):
-    m, N = dfativ.shape
-    h, ne = W.shape
+    Returns:
 
-    if fativ == 'sig': #função ativação sigmoid
-        delta_full = W.T @ (delta * dfativ)
+    """
 
-    elif fativ == 'relu':  #funçao ativação relu
-        delta_full = np.zeros((ne, N), order = 'F')
-        for i in range(ne):
-            #dfativ_aux = np.zeros((dfativ.shape), order = 'F')
-            #px, py = np.where(dfativ==i)   # [px,py]=find(dfativ==i)
-            dfativ_aux = np.where(dfativ == i, 1, 0)
-            for j in range(h):
-                delta_full[j, :] = delta_full[j, :] + W[j, i] @ (delta * dfativ_aux[j, :])
-
-    return delta_full
-
-
-def calc_dfativ(fativ, dfativ, numFiltro):
-    # Retorna a derivada da função de ativação.
-    #
-    if fativ == 'sig': #função de ativação sigmoid
-        # a derivada da sigmoid foi calculdada no feedforward, na função cnnConv
-        df = dfativ
-    elif fativ == 'relu':
-        #dfativ_aux = np.zeros((dfativ.shape), order = 'F')
-        #px, py = np.where(dfativ == numFiltro) # [px,py]=find(dfativ==numFiltro)
-        #dfativ_aux[px, py] = 1
-        #df = dfativ_aux
-        df = np.where(dfativ == numFiltro, 1, 0)
-        # np.take_along_axis(result_conv, np.expand_dims(dfativ[:, :, fil2, i], axis=2), axis=2).squeeze(axis=2)
-    return df
-
-# @vectorizevoid(float64[:],float64[:])
-
-def cnnConv(images, W, b, strider, fativ):
-    # Input:
-    # images (dimX x dimY x numCanais x numImagens).
-    #         dimX, dimY: tamanho da imagem
-    #         numCanais: quantidade de canais
-    #         numImagens: quantidade de imagens
-    # W (dimFiltroX x dimFiltroY x numCanais x numFiltros)
     filterDim = W.shape[0]
-    numFilters1 = W.shape[2]  # numero de canais
+    numFilters1 = W.shape[2]    # number of channels
     numFilters2 = W.shape[3]
-    numImages = images.shape[3]
-    imageDimX = images.shape[0]
-    imageDimY = images.shape[1]
+    numImages = images.shape[3] # number of images
+    imageDimX = images.shape[0] # image X dimension
+    imageDimY = images.shape[1] # image Y dimension
     convDimX = int(np.floor((imageDimX - filterDim) / strider) + 1)
     convDimY = int(np.floor((imageDimY - filterDim) / strider) + 1)
 
     dtype = np.float64
-    Features = np.zeros((convDimX, convDimY, numFilters2, numImages))  # Armazena as features
-    dfativ   = np.zeros((convDimX, convDimY, numFilters2, numImages), dtype = dtype)  #Armazena derivada ativação
-    result_conv = np.zeros((convDimX, convDimY, numFilters1 + 1)) 	    #Armazena o resultado da convolução, posição
+    Features = np.zeros((convDimX, convDimY, numFilters2, numImages))
+    # Activation function derivative
+    dfativ   = np.zeros((convDimX, convDimY, numFilters2, numImages), dtype = dtype)
+    # Convolution result, position
+    result_conv = np.zeros((convDimX, convDimY, numFilters1 + 1))
 
     for i in range(numImages):
         for fil2  in range(numFilters2):
             convolvedImage = np.zeros((convDimX, convDimY))
             dconvolvedImage = np.zeros((convDimX, convDimY))
             for fil1 in range(numFilters1):
-                filter = W[:, :, fil1, fil2]#np.squeeze(W[:, :, fil1, fil2])
-                im = images[:, :, fil1, i]#np.squeeze(images[:, :, fil1, i])
-                result_conv[:,:,fil1] = conv_mod(im, filter, strider)  #Realiza convolução - não rotaciona a o filtro
+                filter = W[:, :, fil1, fil2]
+                im = images[:, :, fil1, i]
+                # Perform convolution - doesn't rotate the filter
+                result_conv[:,:,fil1] = conv_mod(im, filter, strider)
             
             if fativ == 'relu':
-                #Aplicar bias antes do maximo ou depois não altera o indice
+                # Apply bias before or afther the maximum has no effect on index
                 # max(x1+b,x2+b)
-                #[convolvedImage,dconvolvedImage]=max(result_conv,[],3); %Calcula o máximo
-
-#                convolvedImage  = np.max(result_conv[0,:,:,:], axis = 2)  #Calcula o máximo
-#                dconvolvedImage = np.max(result_conv[1,:,:,:], axis = 2)
-#                dfativ[:, :, fil2, i] = dconvolvedImage - 1 #remap 1 para 0, guarda o indice do valor do maximo
-#                convolvedImage = convolvedImage + b[fil2]   #soma o bias
-
-                result_conv[:,:, :-1] = result_conv[:,:, :-1] + b[fil2] # Adiciona bias em todos os canais
-                convolvedImage  = np.max(result_conv, axis = 2)  # função de ativação relu
-                dfativ[:, :, fil2, i] = np.argmax(result_conv, axis = 2)  # indice dos neuronios ativados
-                # np.take_along_axis(result_conv, np.expand_dims(dfativ[:,:,fil2,i], axis=-1), axis=-1).squeeze(axis=-1)
-                # np.take_along_axis(result_conv, np.expand_dims(dfativ[:, :, fil2, i], axis=2), axis=2).squeeze(axis=2)
+                # Add bias in all channels
+                result_conv[:,:, :-1] = result_conv[:,:, :-1] + b[fil2]
+                # Relu activation function
+                convolvedImage  = np.max(result_conv, axis = 2)
+                # Index of activated neurons
+                dfativ[:, :, fil2, i] = np.argmax(result_conv, axis = 2)
             elif fativ == 'sig':
-                convolvedImage = np.sum(result_conv, axis = 2)  #Soma o resultado convolução
-                convolvedImage = convolvedImage + b[fil2]       #soma o bias
-                convolvedImage = 1 / (1 + np.exp(-convolvedImage))     #função ativação
-                dfativ[:, :, fil2, i] = (1 - convolvedImage) * convolvedImage       #derivada sigmoid
+                convolvedImage = np.sum(result_conv, axis = 2)  # Add convolution
+                convolvedImage = convolvedImage + b[fil2]       # Add bias
+                convolvedImage = 1 / (1 + np.exp(-convolvedImage)) # sigmoid
+                dfativ[:, :, fil2, i] = (1 - convolvedImage) * convolvedImage # sigmoid derivative
 
             Features[:, :, fil2, i] = convolvedImage
 
     return Features, dfativ
 
 
-def cnnfull(ativacao, W, b, fativ):
-    m, N, numFiltro, numImagens = ativacao.shape
+def ff_full(activation, W, b, fativ):
+    """
+    Full connected layer output.
+    
+    Args:
+        activation:
+        W:          weights array
+        b:          bias
+        fativ:      activation function
+
+    Returns:
+
+    """
+    m, N, numFilter, numImagens = activation.shape
 
     Z = np.zeros((W.shape), order = 'F')
     dZ = np.zeros((W.shape), order = 'F')
     Zin = np.zeros((W.shape), order = 'F')
-    if numImagens > 1:   #As imagens ainda já foram concatenadas
-        #Concatena a saida anterior para as proximas camadas
-        ativacao = np.reshape(ativacao,(-1, numImagens), order = 'F')
+    if numImagens > 1:   # Images already concatenated
+        # Join previous output to next layers
+        activation = np.reshape(activation,(-1, numImagens), order = 'F')
         N = numImagens
 
     if fativ == 'sig':
-        Zin = W @ ativacao + b #h x N
-        ativacao = 1/(1 + np.exp(-Zin, order = 'F'))    #n x N
-        dativacao = (1 - ativacao) * ativacao
+        Zin = W @ activation + b #h x N
+        activation = 1/(1 + np.exp(-Zin, order = 'F'))    #n x N
+        dativacao = (1 - activation) * activation
 
     elif fativ == 'relu':
         h, ne = W.shape
         for i in range(h):
             for j in range(ne):
-                Zin[j, :] = W[i, j] @ ativacao[j, :]
+                Zin[j, :] = W[i, j] @ activation[j, :]
             val, pos = np.maximum(0, Zin, order = 'F')
             Z[i, : ] = val
-            dZ[i, :] = pos - 1   #remap 1 para 0
-        ativacao = Z
+            dZ[i, :] = pos - 1   #remap 1 to 0
+        activation = Z
         dativacao = dZ
 
-    return ativacao, dativacao
+    return activation, dativacao
 
-# Saída do Pooling
-def cnnPool(poolDim, convolvedFeatures,strider,criterio):
-    # Inputs
-    # convolvedFeatures: matriz com imagens após convolução
-    # strider
+# Pooling output
+def ff_pool(poolDim, convolvedFeatures,strider,criterio):
+    """
+    Pooling layer output.
+    
+    Args:
+        poolDim:            pooling dimension
+        convolvedFeatures:  array of images after convolution
+        strider:            strider size
+        criterio:           pooling type: 'max' or 'mean'
+
+    Returns:
+
+    """
+
     numImages = convolvedFeatures.shape[3]
     numFilters = convolvedFeatures.shape[2]
     convolvedDimx = convolvedFeatures.shape[0]
     convolvedDimy = convolvedFeatures.shape[1]
-
-    dimx = int(np.floor((convolvedDimx - poolDim) / strider) + 1)   # tamanho da imagem após o pooling
-    dimy = int(np.floor((convolvedDimy - poolDim) / strider) + 1)   # tamanho da imagem após o pooling
+    # image size after pooling
+    dimx = int(np.floor((convolvedDimx - poolDim) / strider) + 1)   
+    dimy = int(np.floor((convolvedDimy - poolDim) / strider) + 1)   
 
     pooledFeatures = np.zeros((dimx, dimy, numFilters, numImages), order = 'F')
     dpooledFeatures = np.zeros((dimx * dimy, 2, numFilters, numImages), order = 'F')
@@ -178,8 +190,8 @@ def conv_comp(img, mask, strider):
     m1, n1 = img.shape
     m2, n2 = mask.shape
     if strider > 1:
-        tamx = np.floor(m1 / m2)  #tamanho do filtro x
-        tamy = np.floor(n1 / n2)  #tamanho do filtro y
+        tamx = np.floor(m1 / m2)  # size of filter x
+        tamy = np.floor(n1 / n2)  # size of filter y
         dimx = np.int(strider * m2 + ((m1 - tamx) % strider) - 1)
         dimy = np.int(strider * n2 + ((n1 - tamy) % strider) - 1)
         maskaux = mask
@@ -208,18 +220,20 @@ def conv_comp(img, mask, strider):
         y = 0
 
     return Conv
+
 @jit
 def conv_full(img, mask, dimX, dimY, strider):
 
     mask[0][0],mask[1][1] = mask[1][1],mask[0][0]
     mask = mask.T
-    # mask = np.rot90(mask, k=2)  #Rotaciona o kernel
+    # mask = np.rot90(mask, k=2)  # rotate the kernel
 
-    m1, n1 = img.shape      # ex: 27x27
-    m2, n2 = mask.shape     # ex: 2x2
+    m1, n1 = img.shape      # e.g.: 27x27
+    m2, n2 = mask.shape     # e.g.: 2x2
 
-    tamx = m1 + (2 * m2) - 2 + (strider - 1) * (m1 - 1)  #adciona zeros antes e no meio ex: (29x29) p/ strider = 1
-    tamy = n1 + (2 * n2) - 2 + (strider - 1) * (n1 - 1)  #adciona zeros antes e no meio
+    # addd zeros before and in the middle e.g.: (29x29) for strider = 1
+    tamx = m1 + (2 * m2) - 2 + (strider - 1) * (m1 - 1)
+    tamy = n1 + (2 * n2) - 2 + (strider - 1) * (n1 - 1)
 
     img1 = np.zeros((tamx, tamy))
 
@@ -231,7 +245,7 @@ def conv_full(img, mask, dimX, dimY, strider):
             ky = ky + 1
         kx = kx + 1
 
-    strider = 1    #independente do strider de entrada, a convolução sera strider 1
+    strider = 1    # convolution is strider 1
     m1, n1 = img1.shape
     mConv = np.int(np.floor((m1 - m2) / strider) + 1)
     nConv = np.int(np.floor((n1 - n2) / strider) + 1)
@@ -249,17 +263,28 @@ def conv_full(img, mask, dimX, dimY, strider):
 
     return Conv
 #***********************************************************************
-# Realiza Convolução, mas não rotaciona os kernels
+# Performs convolution, no kernel rotation
 #*******************************************************************
 @jit
 def conv_max(img, mask, strider):
+    """
+    Convolution with no kernel rotation.
+    
+    Args:
+        img:
+        mask:
+        strider:
+
+    Returns:
+
+    """
     m1, n1 = img.shape
     m2, n2 = mask.shape
 
     mConv = np.int(np.floor((m1 - m2) / strider) + 1)
     nConv = np.int(np.floor((n1 - n2) / strider) + 1)
     Conv = np.zeros((mConv, nConv))
-    dConv = np.zeros((mConv * nConv, 2))    #guarda as posições
+    dConv = np.zeros((mConv * nConv, 2))    # stores the positions
     x = 0
     y = 0
     cont = 0
@@ -269,8 +294,8 @@ def conv_max(img, mask, strider):
             val = np.max(img1)
             px, py = np.where(img1==val)
             Conv[i, j] = val
-            dConv[cont, 0] = px[0]  # Guarda os indices do maximo da imagem
-            dConv[cont, 1] = py[0]  # no kernel
+            dConv[cont, 0] = px[0]  # stores the indexes of maximum values
+            dConv[cont, 1] = py[0]  # of image in the kernel
             y = y + strider
             cont = cont + 1
 
@@ -281,10 +306,21 @@ def conv_max(img, mask, strider):
 
 
 #***********************************************************************
-# Realiza Convolução, mas não rotaciona os kernels
+# Performs convolution, no kernel rotation
 #*******************************************************************
 @jit
 def conv_mod(img,mask,strider):
+    """
+    Performs convolution, no kernel rotation
+    
+    Args:
+        img:
+        mask:
+        strider:
+
+    Returns:
+
+    """
     m1, n1 = img.shape
     m2, n2 = mask.shape
 
@@ -302,20 +338,35 @@ def conv_mod(img,mask,strider):
         x = x + strider
         y = 0
 
-#    dConv = np.zeros((mConv, nConv), order = 'F')   #não precisa armazenar a derivada de convolução
+    return Conv
 
-    return Conv #, dConv
-
+#*************************************************************
+# Neuron derivatives
+#*************************************************************
 def delta_pool(delta,dConv,dimPool,strider,dimx,dimy,criterio):
-    # Derivada dos neuronios do pooling
-    m, n = delta.shape
-    deltaConv = np.zeros((dimx, dimy), order='F') #tamanho do pooling
+    """
+    Pooling neurons derivative.
+    
+    Args:
+        delta:      neuron derivative
+        dConv:      derivative of convolution
+        dimPool:    pooling dimension
+        strider:    strider
+        dimx:       
+        dimy:       
+        type:       pooling type: 'max' or 'mean'
 
-    if criterio == 'max':
+    Returns:
+        Convolution neuron derivative.
+    """
+
+    m, n = delta.shape
+    deltaConv = np.zeros((dimx, dimy), order='F') # pooling size
+
+    if type == 'max':
         p = 0
         for i in range(m):
             for j in range(n):
-                #p = n * (i - 1) + j
                 px = dConv[p, 0]
                 py = dConv[p, 1]
                 Ix = int(px + strider * i)
@@ -323,7 +374,7 @@ def delta_pool(delta,dConv,dimPool,strider,dimx,dimy,criterio):
                 deltaConv[Ix, Iy] = deltaConv[Ix, Iy] + delta[i, j]
                 p = p + 1
 
-    elif criterio == 'mean':
+    elif type == 'mean':
         for i in range(m):
             for j in range(n):
                 for kx in range(dimPool):
@@ -334,95 +385,131 @@ def delta_pool(delta,dConv,dimPool,strider,dimx,dimy,criterio):
 
     return deltaConv
 
-#*************************************************************
-#  y - ativação do neuronio
-# dy - derivada da função de ativação do neuronio
-# idx - indices dos neuronios congelados
-#*************************************************************
 
+def delta_full(delta, W, dfativ, fativ):
+    """
+    Compute neuron derivative.
+
+    Args:
+        delta:      neuron derivative 
+        W:          weights array
+        dfativ:     activation function derivative
+        fativ:      activation funciton
+
+    Returns:
+        Neuron derivative
+    """
+    
+    m, N = dfativ.shape
+    h, ne = W.shape
+    
+    if fativ == 'sig':  # sigmoid activation function
+        delta_full = W.T @ (delta * dfativ)
+    
+    elif fativ == 'relu':  # relu activation function
+        delta_full = np.zeros((ne, N), order = 'F')
+        for i in range(ne):
+            dfativ_aux = np.where(dfativ == i, 1, 0)
+            for j in range(h):
+                delta_full[j, :] = delta_full[j, :] + W[j, i] @ (
+                            delta * dfativ_aux[j, :])
+    
+    return delta_full
+
+
+#*************************************************************
+# dropout: freeze neurons
+#*************************************************************
 def dropout(y, dy, idx, tx):
-    # y: ativação ou matriz com imagens
-    # dy: derivada da ativação
-    # idx: individuos congelados
-    # tx: taxa de congelamento
-    dimX, dimY, numFilters, numImagens = y.shape
+    """
+    Freeze neurons.
+    
+    Args:
+        y:      activation or array with images
+        dy:     activation derivative
+        idx:    frozen individuals
+        tx:     frozen rate
+
+    Returns:
+
+    """
+
+    dimX, dimY, numFilters , numImagens = y.shape
     num = len(idx) - 1
     cont = 0
     for i in range(numFilters):
         if cont <= num:
-            if idx[cont] == i: # neuronio foi congelado
-#               y[:,:,i,j] = np.zeros((dimX, dimY), order = 'F')  #ativação vai para zero
-#               dy[:,:,i,j] = np.zeros((dimX, dimY), order = 'F') #derivada vai para zero
-                y[:,:,i,:] = np.zeros((dimX, dimY, numImagens), order = 'F')  #ativação vai para zero
-                dy[:,:,i,:] = np.zeros((dimX, dimY, numImagens), order = 'F') #derivada vai para zero
+            if idx[cont] == i: # neuron is frozen
+                # activation and derivative are zeros
+                y[:,:,i,:] = np.zeros((dimX, dimY, numImagens), order = 'F')
+                dy[:,:,i,:] = np.zeros((dimX, dimY, numImagens), order = 'F')
                 cont = cont + 1
             else:
-#                y[:, :, i, j] = y[:, :, i, j] / (1 - tx)  # aumenta a saida
-                y[:,:,i,:] = y[:,:,i,:]  / (1 - tx) # aumenta a saida
+                y[:,:,i,:] = y[:,:,i,:]  / (1 - tx) # increase the output
 
         else:
-#           y[:,:,i,j] = y[:,:,i,j]  / (1 - tx)  # aumenta a saida
-            y[:,:,i,:] = y[:,:,i,:]  / (1 - tx)  # aumenta a saida
+            y[:,:,i,:] = y[:,:,i,:]  / (1 - tx)  # increase the output
 
     return y, dy
 
-def inicializa_parametros(cnn,opts):
-    numFiltros1 = opts.imageCanal  #Numero de canal - numero entrada para primeira camada
-    dimInputX = opts.imageDimX     #Dimensão da imagem original X
-    dimInputY = opts.imageDimY     #Dimensão da imagem original Y
+def init_params(cnn,opts):
+    numFiltros1 = opts.imageCanal  #number of channels - number of first layer input
+    dimInputX = opts.imageDimX     #original image X dimension
+    dimInputY = opts.imageDimY     #original image Y dimension
     
     
-    for l  in range(len(cnn.camadas)):
-        camada = cnn.camadas[l]   # Camada convolucional
-        # Camada convolucional
-        if camada.tipo == 'c':
-           numFiltros2 = camada.numFiltros   # Numero de filtros
-           dimFiltros = camada.dimFiltros    # Dimensão do filtro
-           camada.W = 1e-1 * np.ones((dimFiltros,dimFiltros,numFiltros1,numFiltros2)) #Inicializa o w
-           camada.b = np.zeros((numFiltros2, 1), order = 'F')  # Inicializa o valor do bias
-           camada.W_velocidade = np.zeros((camada.W.shape), order = 'F')
-           camada.b_velocidade = np.zeros((camada.b.shape), order = 'F')
-                      
-           dimConvX = int(np.floor((dimInputX - camada.dimFiltros) / camada.strider + 1))  #Dimensão da imagem gerada apos convolução
-           dimConvY = int(np.floor((dimInputY - camada.dimFiltros) / camada.strider + 1))  #Dimensão da imagem gerada apos convolução
-           camada.delta = np.zeros((dimConvX,dimConvY,numFiltros2,opts.batchsize), order = 'F')    #Guarda as derivadas para todo conjunto e filtros
+    for l  in range(len(cnn.layers)):
+        layer = cnn.layers[l]   # convolucional layer
+        # convolucional layer
+        if layer.type == 'c':
+            numFiltros2 = layer.numFilters   # number of filters
+            dimFiltros = layer.dimFiltros    # filter dimension
+            layer.W = 1e-1 * np.ones((dimFiltros,dimFiltros,numFiltros1,numFiltros2)) # initialize w
+            layer.b = np.zeros((numFiltros2, 1), order = 'F')  # initialize bias
+            layer.W_velocidade = np.zeros((layer.W.shape), order = 'F')
+            layer.b_velocidade = np.zeros((layer.b.shape), order = 'F')
+            
+            # image size after convolution
+            dimConvX = int(np.floor((dimInputX - layer.dimFiltros) / layer.strider + 1))
+            dimConvY = int(np.floor((dimInputY - layer.dimFiltros) / layer.strider + 1))
+            layer.delta = np.zeros((dimConvX,dimConvY,numFiltros2,opts.batchsize), order = 'F')    #Guarda as derivadas para todo conjunto e filtros
 
-           numFiltros1 = numFiltros2  #Numero de filtros da proxima camda (Numrero de entradas)
-           dimInputX = dimConvX       #Dimensão da imagem para proxima camada
-           dimInputY = dimConvY       #Dimensão da imagem para proxima camada
+            numFiltros1 = numFiltros2  #number of next layer filters
+            dimInputX = dimConvX       #next layer image dimension
+            dimInputY = dimConvY       #next layer image dimension
 
-        #Camada Pooling
-        elif camada.tipo == 'p':
-           dimPooledX = int(np.floor((dimInputX - camada.dimPool) / camada.strider) + 1)  #Dimensão da Imagem gerada pelo Pooling
-           dimPooledY = int(np.floor((dimInputY - camada.dimPool) / camada.strider) + 1)  #Dimensão da Imagem gerada pelo Pooling
-           camada.delta = np.zeros((dimPooledX,dimPooledY,numFiltros1,opts.batchsize), order = 'F')  # Guarda as derivadas
-           dimInputX =  dimPooledX    #Dimensão da Imagem para proxima camada
-           dimInputY =  dimPooledY    #Dimensão da Imagem para proxima camada           
+        #Pooling layer
+        elif layer.type == 'p':
+               dimPooledX = int(np.floor((dimInputX - layer.dimPool) / layer.strider) + 1)  #image dimension after pooling
+               dimPooledY = int(np.floor((dimInputY - layer.dimPool) / layer.strider) + 1)  #image dimension after pooling
+               layer.delta = np.zeros((dimPooledX,dimPooledY,numFiltros1,opts.batchsize), order = 'F')  # stores the derivatives
+               dimInputX =  dimPooledX    #next layer image dimension
+               dimInputY =  dimPooledY    #next layer image dimension
 
-        #Camada full
-        elif camada.tipo == 'f':  
-            numFiltros2 = camada.numhidden   # Numero de neuronios da camada
+        #full connected layer
+        elif layer.type == 'f':  
+            numFiltros2 = layer.numhidden   # number of neurons
             if l > 1:
-                if not (cnn.camadas[l-1].tipo == 'f'):
-                    numAtrib = numFiltros1 * dimInputX * dimInputY   #Numero de atributos
+                if not (cnn.layers[l-1].type == 'f'):
+                    numAtrib = numFiltros1 * dimInputX * dimInputY   #number of features
                 else:
                     numAtrib = numFiltros1
 
             else:
                 numAtrib = numFiltros1 * dimInputX * dimInputY
 
-            camada.W = 1e-1 * np.random.random((numFiltros2, numAtrib))   # hxne
-            camada.b = np.zeros((numFiltros2,1), order = 'F')  # Inicializa o valor do bias
-            camada.W_velocidade = np.zeros((camada.W.shape), order = 'F')
-            camada.b_velocidade = np.zeros((camada.b.shape), order = 'F')
-            camada.delta = np.zeros((numFiltros2, opts.batchsize), order = 'F')
+            layer.W = 1e-1 * np.random.random((numFiltros2, numAtrib))   # h x ne
+            layer.b = np.zeros((numFiltros2,1), order = 'F')  # initialize bias
+            layer.W_velocidade = np.zeros((layer.W.shape), order = 'F')
+            layer.b_velocidade = np.zeros((layer.b.shape), order = 'F')
+            layer.delta = np.zeros((numFiltros2, opts.batchsize), order = 'F')
             numFiltros1 = numFiltros2
 
-        cnn.camadas[l] = camada
+        cnn.layers[l] = layer
 
-    #ultima camada
-    if camada.tipo == 'f': 
-        cnn.quantNeuron =  numFiltros1  #Numero de entradas camada saida
+    # last layer
+    if layer.type == 'f': 
+        cnn.quantNeuron =  numFiltros1  # number of inputs in output layer
     else:
        cnn.quantNeuron = numFiltros1 * dimInputX * dimInputY
 
@@ -430,382 +517,366 @@ def inicializa_parametros(cnn,opts):
     cnn.probs = np.zeros((opts.numClasses, opts.batchsize), order = 'F')
     
     r  = np.sqrt(6) / np.sqrt(opts.numClasses + cnn.quantNeuron+1)
-    cnn.Wd = np.random.random((opts.numClasses, cnn.quantNeuron)) * 2 * r - r  # pesos da camada de saida
-    cnn.bd = np.zeros((opts.numClasses,1), order = 'F')        # bias da camada de saida)
+    cnn.Wd = np.random.random((opts.numClasses, cnn.quantNeuron)) * 2 * r - r  # output layer weights
+    cnn.bd = np.zeros((opts.numClasses,1), order = 'F')        # output layer bias
     cnn.Wd_velocidade = np.zeros((cnn.Wd.shape), order = 'F')
     cnn.bd_velocidade = np.zeros((cnn.bd.shape), order = 'F')
     cnn.delta = np.zeros((cnn.probs.shape), order = 'F')
     
-    cnn.imageDimX = opts.imageDimX
-    cnn.imageDimY = opts.imageDimY
-    cnn.imageCanal = opts.imageCanal    # Quantidade de canais na imagem
-    cnn.numClasses = opts.numClasses    # Numero de classes
-    cnn.alpha = opts.alpha              # taxa de aprendizado
-    cnn.minibatch = opts.batchsize      # tamanho do batch
-    cnn.numepocas = opts.numepocas      # numero de epocas
-    cnn.lambda_ = opts.lambda_          # Fator de regularização
-    cnn.momentum = opts.momentum
-    cnn.mom = opts.mom
-    cnn.momIncrease = opts.momIncrease
+    cnn.imageDimX = opts.imageDimX      # image X axis dimension
+    cnn.imageDimY = opts.imageDimY      # image Y axis dimension
+    cnn.imageCanal = opts.imageCanal    # number of channels in image
+    cnn.numClasses = opts.numClasses    # number of classes
+    cnn.alpha = opts.alpha              # learning rate
+    cnn.minibatch = opts.batchsize      # batch size
+    cnn.numepochs = opts.numepochs      # number of epochs
+    cnn.lambda_ = opts.lambda_          # regularization factor
+    cnn.momentum = opts.momentum        # final momentum factor
+    cnn.mom = opts.mom                  # initial momentum factor
+    cnn.momIncrease = opts.momIncrease  # number of epochs to change momentum
     cnn.ratio = opts.ratio
 
     return cnn
 
-def treinamento_cnn(cnn,imagens,labels):
-    it = 0   #numero de iterações
+def train_cnn(cnn,images,labels, pdir = ''):
+    it = 0   # number of iterations
     plotData = pd.DataFrame(columns=['Epoch', 'Iteration', 'Total Cost', 'Cost'])
 
-    # Carrega alguns parametros
-    epocasMax = cnn.numepocas           # Numero de epocas
-    minibatch = cnn.minibatch           # tamanho do minibatch
-    momIncrease = cnn.momIncrease       # Incremento do momento
-    mom = cnn.mom                       #
-    momentum = cnn.momentum             #termo de momento
-    alpha = cnn.alpha                   #taxa de aprendizado
-    lambda_ = cnn.lambda_               #coeficente de regularização
-    ratio = cnn.ratio                   # Taxa de congelamento dos neuronios
-    numCamadas = len(cnn.camadas)       #Numero de camadas
+    # Load some parameters
+    epocasMax = cnn.numepochs           # number of epochs
+    minibatch = cnn.minibatch           # minibatch size
+    momIncrease = cnn.momIncrease       # number of epochs to increase momentum
+    mom = cnn.mom                       # initial momentum factor
+    momentum = cnn.momentum             # momentum term
+    alpha = cnn.alpha                   # learning rate
+    lambda_ = cnn.lambda_               # regularization coefficient
+    ratio = cnn.ratio                   # neuron frozen rate
+    numlayers = len(cnn.layers)         # number of layers
 
 
-    N = max(labels.shape)              #Numero de entradas
+    N = max(labels.shape)               # number of inputs
     cont = 0
     for nep in range(epocasMax):
         #*****************************************************************
-        # 1) Para cada epoca, realiza um congelamento de alguns neuronios
+        # 1) For each epoch, freeze some neurons
         #****************************************************************
-        for l in range(numCamadas):
-            camada = cnn.camadas[l]
+        for l in range(numlayers):
+            layer = cnn.layers[l]
             Idx = []
-            # Camada de convolução
-            if camada.tipo == 'c':
-                numFiltros = camada.numFiltros
-                camada.indcongFiltros = np.where(np.random.rand(numFiltros) <= ratio)[0] #Indice dos filtros congelados
-                Idx = camada.indcongFiltros
-                camada.txcongFiltros = max(np.shape(Idx)) / numFiltros   #Taxa de filtros congelados
-                print('Na camada Convolucao %i, foram congelados efetivamente %d filtros' % (l,max(np.shape(Idx))))
-                cnn.camadas[l] = camada
-            # Camada pooling segue o mesmo congelamento da camada convolução
-            elif camada.tipo == 'p':
-                print('Na camada %i, foram congelados efetivamente %d filtros' % (l, max(np.shape(Idx))))
-            # Congela neuronios da camada totalmente conectada
-            elif camada.tipo == 'f':
-                numFiltros = camada.numhidden
-                camada.indcongFiltros = np.where(np.random.rand(numFiltros) <= ratio)[0] #Indice dos filtros congelados
-                Idx = camada.indcongFiltros
-                camada.txcongFiltros = max(np.shape(Idx)) / numFiltros #Taxa de filtros congelados
-                print('Na camada Totalmente Conectada %i, foram congelados efetivamente %d filtros' % (l,max(np.shape(Idx))))
-                cnn.camadas[l]=camada
+            # convolution layer
+            if layer.type == 'c':
+                numFilters = layer.numFilters
+                layer.indcongFiltros = np.where(np.random.rand(numFilters) <= ratio)[0] # index of frozen filters
+                Idx = layer.indcongFiltros
+                layer.txcongFiltros = max(np.shape(Idx)) / numFilters   # rate of frozen filters
+                print('In convolution layer %i, %d filters are frozen' % (l,max(np.shape(Idx))))
+                cnn.layers[l] = layer
+            # pooling layer uses same freezen as convolution layer
+            elif layer.type == 'p':
+                print('In pooling layer %i, %d filters are frozen' % (l, max(np.shape(Idx))))
+            # Freeze neurons in full connected layer
+            elif layer.type == 'f':
+                numFilters = layer.numhidden
+                layer.indcongFiltros = np.where(np.random.rand(numFilters) <= ratio)[0] # index of frozen filters
+                Idx = layer.indcongFiltros
+                layer.txcongFiltros = max(np.shape(Idx)) / numFilters # rate of frozen filters
+                print('In full connected layer %i, %d filters are frozen' % (l,max(np.shape(Idx))))
+                cnn.layers[l]=layer
 
         #******************************************************************
-        # Gera randomicamente os indices de entrada
+        # Initialize input index
         p = np.random.permutation(N)
 
         #********************************************************************
-        # Separa os dados em minibatch,
+        # Split data in minibatch,
         #********************************************************************
         for s in range(0, N - minibatch + 1, minibatch):
-            it = it + 1   # Conta o numero de atualização
-            #incrementa o momento
+            it = it + 1   # count iterations
+            # increase momentum
             if it == momIncrease:
                 mom = momentum
 
-            # Gera o subconjunto de treinamen
-            X = imagens[:,:,:,p[s:s+minibatch]]  #Seleciona as entrada para treinamento
-            Yd = labels[p[s:s+minibatch]]        # seleciona os rotulos para treinamento
+            # Create training set
+            X = images[:,:,:,p[s:s+minibatch]]  # select training input
+            Yd = labels[p[s:s+minibatch]]       # select training labels
             Yd = Yd.reshape(len(Yd), 1, order = 'F')
-            numImagens = X.shape[3]                # [dimX, dimY, canal, numero de imagens]
+            numImagens = X.shape[3]             # [dimX, dimY, channel, number of images]
             #*************************************************************
-            #Realiza feedforward
+            # Feedforward
             #************************************************************
-            # ativacao(dimX x dimY x canais x minibatch)
+            # activation(dimX x dimY x channels x minibatch)
             # dimX, dimY: tamanho da imagem
-            # canais: numero de canais da imagem
-            # minibatch: tamanho do minibatch, ou seja quantidade de imagens
-            ativacao = X #Ativação para camada entrada
-            cont = 0 #sinaliza que os dados são imagens
-            for l in range(numCamadas):
-                camada = cnn.camadas[l]
-                # camada.W (dimFiltro x dimFiltro x canais x numFiltro)
-                # dimFiltro: tamanho do filtro (kernel)
-                # canais: quantidade de canais da imagem
-                # numFiltro: quantidade de filtros
-                #Camada convolução
-                if camada.tipo == 'c':
-                    strider = camada.strider
-                    fativ = camada.fativ
-                    ativacao, dfativ = cnnConv(ativacao, camada.W, camada.b, strider, fativ)
-                    indcong = camada.indcongFiltros  # indice dos filtros  congelados
-                    txcong = camada.txcongFiltros    # taxa de filtros congelados
-                    ativacao, dfativ = dropout(ativacao, dfativ, indcong, txcong)   #ativação para proxima camada (Congela neurônios)
-                # Camada de Pooling
-                elif camada.tipo == 'p':
-                    strider = camada.strider
-                    criterio = camada.criterio
-                    ativacao, dfativ = cnnPool(camada.dimPool,ativacao,strider,criterio)
+            # channels: number of channels
+            # minibatch: minibatch size, i.e. number of images
+            activation = X # input layer activation
+            cont = 0 # image data
+            for l in range(numlayers):
+                layer = cnn.layers[l]
+                # layer.W (dimFiltro x dimFiltro x channels x numFilter)
+                # dimFiltro:   filter size (kernel)
+                # channels:    number of channels in image
+                # numFilter:   number of filters
+                # convolution layer
+                if layer.type == 'c':
+                    strider = layer.strider
+                    fativ = layer.fativ
+                    activation, dfativ = ff_conv(activation, layer.W, layer.b, strider, fativ)
+                    indcong = layer.indcongFiltros  # index of frozen filters
+                    txcong = layer.txcongFiltros    # rate of frozen filters
+                    activation, dfativ = dropout(activation, dfativ, indcong, txcong)   #next layer activation (freeze neurons)
+                # Pooling layer
+                elif layer.type == 'p':
+                    strider = layer.strider
+                    criterio = layer.criterio
+                    activation, dfativ = ff_pool(layer.dimPool,activation,strider,criterio)
                     if l>0:
-                        camada.numFiltros = cnn.camadas[l-1].numFiltros #adicionei este campo para facilita
+                        layer.numFilters = cnn.layers[l-1].numFilters
                     else:
-                        camada.numFiltros = cnn.imageCanal #adicionei este campo para facilita
+                        layer.numFilters = cnn.imageCanal
 
-                #Camada totalmente conectadaelif
-                elif camada.tipo == 'f':
-                    fativ = camada.fativ
-                    #save all
-                    ativacao, dfativ = cnnfull(ativacao, camada.W, camada.b, fativ)
-                    cont = 1 #Sinaliza que os dados foram concatenados
+                # full connected layer
+                elif layer.type == 'f':
+                    fativ = layer.fativ
+                    activation, dfativ = ff_full(activation, layer.W, layer.b, fativ)
+                    cont = 1 # data has been concatenated
 
-                camada.ativacao = ativacao
-                camada.dfativ = dfativ
-                cnn.camadas[l] = camada
+                layer.activation = activation
+                layer.dfativ = dfativ
+                cnn.layers[l] = layer
 
             if cont == 0:
-                #Concatena a saida anterior para as proximas camadas
-                ativacao = np.reshape(ativacao, (-1, numImagens), order='F')
+                # concatenate previous output for next layers
+                activation = np.reshape(activation, (-1, numImagens), order='F')
 
-            #camada saida: Softmax
-            probs = np.exp(cnn.Wd @ ativacao + cnn.bd, order = 'F') #np.exp(W*ativ + b, order = 'F')
-            sumProbs = np.sum(probs, 0, keepdims=True)   # calcula a soma das exponenciais
-            probs = probs / sumProbs  # np.exp(W*ativ + b)/soma exponencial
+            # output layer: Softmax
+            probs = np.exp(cnn.Wd @ activation + cnn.bd, order = 'F')
+            sumProbs = np.sum(probs, 0, keepdims=True)
+            probs = probs / sumProbs
 
-            ## --------- Calculo do Custo ----------
-            # Calcula a entropia cruzada
-            logp = np.log(probs)  #Numero de classes x Numero de amostras
-            #index = sub2ind(size(logp), Yd.T, 1:size(probs,2)); #busca o indice que correponde a classe
-            index = sub2ind(logp.shape, Yd.T, np.arange(probs.shape[1])) #busca o indice que correponde a classe
-            Custo = -np.sum(logp.ravel(order = 'F')[index]) #Equivalente -Yd.*log(Probs)
-            #Custo = -Yd.T*np.log(probs)
+            ## --------- Cost Computation ----------
+            # Cross-entropy
+            logp = np.log(probs)  # number of classes x number of samples
+            index = np.arange(probs.shape[1]) * logp.shape[0] + Yd.T
+            Custo = -np.sum(logp.ravel(order = 'F')[index]) # same as -Yd.*log(Probs)
             ############################################
-            # Calcula a soma dos pesos ao quadrado
+            # Sum of weights squared
             wCusto = 0
-            for l in range(numCamadas):
-                camada = cnn.camadas[l]
-                if not (camada.tipo == 'p'):
-                    wCusto = wCusto + np.sum(camada.W ** 2)
+            for l in range(numlayers):
+                layer = cnn.layers[l]
+                if not (layer.type == 'p'):
+                    wCusto = wCusto + np.sum(layer.W ** 2)
 
-            # Adiciona a soma dos pesos ao quadrado
+            # Add the sum of weights squared
             wCusto = lambda_ / 2 * (wCusto + np.sum(cnn.Wd ** 2))
-            CustoTotal = Custo + wCusto    # adiciona os pesos na função custo
+            CustoTotal = Custo + wCusto
             #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            #---Realiza o Algoritmo Backpropagation
+            #---Backpropagation
             #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             #softmax layer
             output = np.zeros(probs.shape, order = 'F')
-            output.ravel(order = 'F')[index] = 1 #Aciona o valor de 1 a saida desejada
-            DeltaSoftmax = (probs - output) #Calcula o erro
+            output.ravel(order = 'F')[index] = 1 # Include value ' to desired output
+            DeltaSoftmax = (probs - output) # compute the error
 
 
-            #Transforma o erro em matriz
-            #if numCamadas>1
-            #    if not strcmp(cnn.camadas[numCamadas],'f')
-            #        numFiltros2 = cnn.camadas[numCamadas].numFiltros; #Numero de filtros da ultima camada
-            #    end
-            #else
-            #    numFiltros2 = size(X,2); #Numero de filtros da ultima camada
-            #end
-
-            dimSaidaX = cnn.camadas[numCamadas - 1].ativacao.shape[0]  # Numero de saida
-            dimSaidaY = cnn.camadas[numCamadas - 1].ativacao.shape[1]  # Numero de saida
-            camada = cnn.camadas[numCamadas - 1]     #ultima camada
-            if camada.tipo == 'f':
-                # Se tiver camada intermediaria, trabalha com matriz
+            dimSaidaX = cnn.layers[numlayers - 1].activation.shape[0]  # Number of output
+            dimSaidaY = cnn.layers[numlayers - 1].activation.shape[1]  #
+            layer = cnn.layers[numlayers - 1]     # last layer
+            if layer.type == 'f':
+                # Use matrix if there's intermediate layer
                 delta_ant = cnn.Wd.T @ DeltaSoftmax
             else:
-                #Não tem camada intermediaria, transforma os dados em imagem
-                #para retropropagar
-                numFiltros2 = cnn.camadas[numCamadas - 1].numFiltros
+                # no intermediate layer, transform image data for backpropagation
+                numFiltros2 = cnn.layers[numlayers - 1].numFilters
                 delta_ant = np.reshape(cnn.Wd.T @ DeltaSoftmax,(dimSaidaX,dimSaidaY,numFiltros2,numImagens), order = 'F')
 
 
-            # Carrega dados da camada de saida salva delta na ultima camada
-            # Carrega dados da camada full salva delta na camada anterior
-            # Outras camadas
-            for l in range(numCamadas - 1, -1, -1):
-                camada = cnn.camadas[l]
-                if camada.tipo == 'f':
-                    ativacao = cnn.camadas[l].ativacao
+            # load data from output layer, save delta in last layer
+            # other layers
+            for l in range(numlayers - 1, -1, -1):
+                layer = cnn.layers[l]
+                if layer.type == 'f':
+                    activation = cnn.layers[l].activation
                     delta_full = delta_ant
-                    fativ = cnn.camadas[l].fativ
-                    dfativ = cnn.camadas[l].dfativ
-                    delta = calc_delta(delta_full,camada.W,dfativ,fativ)
-                    cnn.camadas[l].delta = delta_ant * dfativ  #passa pela função de ativação
+                    fativ = cnn.layers[l].fativ
+                    dfativ = cnn.layers[l].dfativ
+                    delta = delta_full(delta_full,layer.W,dfativ,fativ)
+                    cnn.layers[l].delta = delta_ant * dfativ  # activation function
                     if l > 0:
-                        if cnn.camadas[l-1].tipo == 'c' or cnn.camadas[l-1].tipo == 'p':
-                            #camada anterior é convolucional
-                            #Precisa transformar forma matricial para imagem
-                            dimSaidaX = (cnn.camadas[l-1].ativacao).shape[0]     # Numero de saida
-                            dimSaidaY = (cnn.camadas[l-1].ativacao).shape[1]     # Numero de saida
-                            numFiltros = cnn.camadas[l-1].numFiltros             #Numero de filtros
-                            delta_ant = np.reshape(delta,(dimSaidaX,dimSaidaY,numFiltros,numImagens), order = 'F')   #camada anterior
+                        if cnn.layers[l-1].type == 'c' or cnn.layers[l-1].type == 'p':
+                            # previous layer is convolutional
+                            # transform image in matrix format
+                            dimSaidaX = (cnn.layers[l-1].activation).shape[0] # number of outputs
+                            dimSaidaY = (cnn.layers[l-1].activation).shape[1] # number of outpus
+                            numFilters = cnn.layers[l-1].numFilters           # number of filters
+                            delta_ant = np.reshape(delta,(dimSaidaX,dimSaidaY,numFilters,numImagens), order = 'F')   # previous layer
 
                         else:
                             delta_ant = delta
 
-                    else: #camada anterior é entrada
-                        dimSaidaX = X.shape[0]   # Numero de saida
-                        dimSaidaY = X.shape[1]   # Numero de saida
-                        numFiltros = cnn.imageCanal #Numero de filtros
-                        delta_ant = np.reshape(delta,(dimSaidaX,dimSaidaY,numFiltros,numImagens), order = 'F')
-                elif camada.tipo == 'p': # camada pooling
+                    else: # previous layer is the input
+                        dimSaidaX = X.shape[0]   # number of output
+                        dimSaidaY = X.shape[1]   #
+                        numFilters = cnn.imageCanal # number of filters
+                        delta_ant = np.reshape(delta,(dimSaidaX,dimSaidaY,numFilters,numImagens), order = 'F')
+                elif layer.type == 'p': # pooling layer
                     if l > 0:
-                        numFiltros = cnn.camadas[l-1].numFiltros            #Numero de filtros da camada anterior
-                        dimSaida1 = (cnn.camadas[l-1].ativacao).shape[0]      #dimensao da saida
-                        dimSaida2 = (cnn.camadas[l-1].ativacao).shape[1]      #dimensao da saida
+                        numFilters = cnn.layers[l-1].numFilters          # number of filters in previous layer
+                        dimOut1 = (cnn.layers[l-1].activation).shape[0]  # output dimension
+                        dimOut2 = (cnn.layers[l-1].activation).shape[1]  # output dimension
                     else:
-                        numFiltros = cnn.imageCanal
-                        dimSaida1 = X.shape[0]   #dimensao da saida
-                        dimSaida2 = X.shape[1]   #dimensao da saida
+                        numFilters = cnn.imageCanal
+                        dimOut1 = X.shape[0]   # output dimension
+                        dimOut2 = X.shape[1]   # output dimension
 
-                    strider = cnn.camadas[l].strider
-                    dimPool = cnn.camadas[l].dimPool   #dimensão do kernel de pooling
-                    convDim1 = dimSaida1    # dimSaida1 * strider + dimPool - 1
-                    convDim2 = dimSaida2    # dimSaida2 * strider + dimPool - 1
-                    criterio = cnn.camadas[l].criterio
+                    strider = cnn.layers[l].strider
+                    dimPool = cnn.layers[l].dimPool   # pooling kernel dimension
+                    convDim1 = dimOut1    # dimOut1 * strider + dimPool - 1
+                    convDim2 = dimOut2    # dimOut2 * strider + dimPool - 1
+                    criterio = cnn.layers[l].criterio
                     deltaPool = delta_ant
-                    dfativ = cnn.camadas[l].dfativ
-                    #Unpool da ultima camada
-                    delta = np.zeros((convDim1,convDim2,numFiltros,numImagens), order = 'F')    #Cria
+                    dfativ = cnn.layers[l].dfativ
+                    #Unpool da ultima layer
+                    delta = np.zeros((convDim1,convDim2,numFilters,numImagens), order = 'F')
                     for imNum in range(numImagens):
-                        for FilterNum in range(numFiltros):
+                        for FilterNum in range(numFilters):
                             unpool = deltaPool[:,:,FilterNum,imNum]
                             dfativaux = dfativ[:,:,FilterNum,imNum]
                             delta[:,:,FilterNum,imNum]= delta_pool(unpool, dfativaux, dimPool, strider, convDim1, convDim2, criterio)
 
-                    cnn.camadas[l].delta = delta
+                    cnn.layers[l].delta = delta
                     delta_ant=delta
-                elif camada.tipo == 'c':
+                elif layer.type == 'c':
                     if l > 0:
-                        numFiltros1 = cnn.camadas[l-1].numFiltros       #Numero de filtros da camada anterior
-                        dimSaida1 = (cnn.camadas[l-1].ativacao).shape[0]   #Numero de saida da camada atual
-                        dimSaida2 = (cnn.camadas[l-1].ativacao).shape[1]   #Numero de saida da camada atual
+                        numFiltros1 = cnn.layers[l-1].numFilters        # number of filters in previous layer
+                        dimOut1 = (cnn.layers[l-1].activation).shape[0] # number of outputs in current layer
+                        dimOut2 = (cnn.layers[l-1].activation).shape[1] # number of outputs in current layer
                     else:
                         numFiltros1 = cnn.imageCanal
-                        dimSaida1 = X.shape[0]   #Numero de saida da camada anterior
-                        dimSaida2 = X.shape[1]   #Numero de saida da camada anterior
+                        dimOut1 = X.shape[0]   # number of outputs in previous layer
+                        dimOut2 = X.shape[1]   # number of outputs in previous layer
 
-                    numFiltros2 = cnn.camadas[l].numFiltros     #Numero de filtrso da camada posterior
-                    delta = np.zeros((dimSaida1,dimSaida2,numFiltros1,numImagens), order = 'F') # Matriz de derivada com zero
-                    deltaConv = delta_ant    #copia a derivada da camada da frente
-                    Wc = cnn.camadas[l].W    #pesos da camada posterior
-                    strider = cnn.camadas[l].strider
-                    fativ  = cnn.camadas[l].fativ
-                    dfativ = cnn.camadas[l].dfativ
+                    numFiltros2 = cnn.layers[l].numFilters  # number of filters in next layer
+                    delta = np.zeros((dimOut1,dimOut2,numFiltros1,numImagens), order = 'F') # derivative array with zeros
+                    deltaConv = delta_ant   # copy next layer derivative
+                    Wc = cnn.layers[l].W    # next layer weights
+                    strider = cnn.layers[l].strider
+                    fativ  = cnn.layers[l].fativ
+                    dfativ = cnn.layers[l].dfativ
                     delta_aux = deltaConv
                     for i  in range(numImagens):
                         for f1  in range(numFiltros1):
                             for f2  in range(numFiltros2):
-                                #Precisa fazer convolução full com kernel
-                                #rotacionado
-                                df = calc_dfativ(fativ, dfativ[:, :, f2, i], f1)
-                                delta_aux[:, :, f2, i] = deltaConv[:, :, f2, i] * df   #Multiplica pela derivada da função ativação
-                                delta[:, :, f1, i] = delta[:, :, f1, i] + conv_full(delta_aux[:, :, f2, i], Wc[:, :, f1, f2], dimSaida1, dimSaida2, strider)
+                                # convolution with rotated kernel
+                                if fativ == 'sig':  # sigmoid
+                                    # sigmoid derivative computed on feedforward, 
+                                    # on method ff_conv
+                                    df = dfativ
+                                elif fativ == 'relu':
+                                    df = np.where(dfativ[:, :, f2, i] == f1, 1, 0)
 
-                    cnn.camadas[l].delta = delta_aux   #armazena na camada
+                                delta_aux[:, :, f2, i] = deltaConv[:, :, f2, i] * df   # multiply by activation function derivative
+                                delta[:, :, f1, i] = delta[:, :, f1, i] + conv_full(delta_aux[:, :, f2, i], Wc[:, :, f1, f2], dimOut1, dimOut2, strider)
+
+                    cnn.layers[l].delta = delta_aux   #armazena na layer
                     delta_ant = delta
 
             # gradients
-            ativacao = cnn.camadas[numCamadas - 1].ativacao   #ativacao da ultima camada
-            #ativacao = reshape(ativacao,[],numImagens, order = 'F')   # Transforma em vetor
-            if cnn.camadas[numCamadas - 1].tipo == 'c' or cnn.camadas[numCamadas - 1].tipo == 'p':
-                ativacao = np.reshape(ativacao,(-1, numImagens), order = 'F') # Transforma em vetor
+            activation = cnn.layers[numlayers - 1].activation   # last layer activation
+            if cnn.layers[numlayers - 1].type == 'c' or cnn.layers[numlayers - 1].type == 'p':
+                activation = np.reshape(activation,(-1, numImagens), order = 'F') # tranform in vector
 
-            Wd_grad = DeltaSoftmax @ ativacao.T   #dJdw
+            Wd_grad = DeltaSoftmax @ activation.T   #dJdw
             bd_grad = np.sum(DeltaSoftmax, 1, keepdims = True)     #dIdb
 
             cnn.Wd_velocidade = mom * cnn.Wd_velocidade + alpha * (Wd_grad / minibatch + lambda_ * cnn.Wd)
             cnn.bd_velocidade = mom * cnn.bd_velocidade + alpha * (bd_grad / minibatch)
-            cnn.Wd = cnn.Wd - cnn.Wd_velocidade   #atualiza os pesos da camada de saida
-            cnn.bd = cnn.bd - cnn.bd_velocidade   #atualiza o bias
+            cnn.Wd = cnn.Wd - cnn.Wd_velocidade   # update output layer weights
+            cnn.bd = cnn.bd - cnn.bd_velocidade   # update bias
 
-            #Realiza a atualização
-            for l in range(numCamadas -1, -1, -1):
-                camada = cnn.camadas[l]
-                if camada.tipo == 'f':
-                    numhidden = camada.numhidden
+            # update variables
+            for l in range(numlayers -1, -1, -1):
+                layer = cnn.layers[l]
+                if layer.type == 'f':
+                    numhidden = layer.numhidden
                     if l == 0:
-                        ativacao = np.reshape(X, (-1, numImagens), order='F')
+                        activation = np.reshape(X, (-1, numImagens), order='F')
                     else:
-                        ativacao = cnn.camadas[l - 1].ativacao
-                        if not (cnn.camadas[l-1].tipo == 'f') :
-                            ativacao = np.reshape(ativacao, (-1, numImagens), order='F')
-                    Wc_grad = np.zeros((camada.W.shape), order = 'F')
-                    bc_grad = np.zeros((camada.b.shape), order = 'F')
-                    delta = camada.delta
+                        activation = cnn.layers[l - 1].activation
+                        if not (cnn.layers[l-1].type == 'f') :
+                            activation = np.reshape(activation, (-1, numImagens), order='F')
+                    Wc_grad = np.zeros((layer.W.shape), order = 'F')
+                    bc_grad = np.zeros((layer.b.shape), order = 'F')
+                    delta = layer.delta
                     bc_grad = np.sum(delta, axis = 1, keepdims=True)
 
-                    Wc_grad = delta @ ativacao.T
-                    camada.W_velocidade = mom * camada.W_velocidade + alpha * (Wc_grad / numImagens + lambda_ * camada.W)
-                    camada.b_velocidade = mom * camada.b_velocidade + alpha * (bc_grad / numImagens)
-                    camada.W = camada.W - camada.W_velocidade
-                    camada.b = camada.b - camada.b_velocidade
+                    Wc_grad = delta @ activation.T
+                    layer.W_velocidade = mom * layer.W_velocidade + alpha * (Wc_grad / numImagens + lambda_ * layer.W)
+                    layer.b_velocidade = mom * layer.b_velocidade + alpha * (bc_grad / numImagens)
+                    layer.W = layer.W - layer.W_velocidade
+                    layer.b = layer.b - layer.b_velocidade
 
-                # Camada de convolução
-                elif(camada.tipo == 'c'):
-                    numFiltros2 = camada.numFiltros
+                # convolution layer
+                elif(layer.type == 'c'):
+                    numFiltros2 = layer.numFilters
                     if l == 0:
                         numFiltros1 = cnn.imageCanal
-                        ativacao = X
+                        activation = X
                     else:
-                        numFiltros1 = cnn.camadas[l-1].numFiltros
-                        ativacao = cnn.camadas[l-1].ativacao
+                        numFiltros1 = cnn.layers[l-1].numFilters
+                        activation = cnn.layers[l-1].activation
 
-                    Wc_grad = np.zeros(camada.W.shape, order='F')
-                    DeltaConv = camada.delta
-                    strider = camada.strider
+                    Wc_grad = np.zeros(layer.W.shape, order='F')
+                    DeltaConv = layer.delta
+                    strider = layer.strider
 
                     for fil2 in range(numFiltros2):
                         for fil1  in range(numFiltros1):
                             for im  in range(numImagens):
-                                Wc_grad[:,:,fil1,fil2] = Wc_grad[:,:,fil1,fil2] + conv_comp(ativacao[:, :, fil1, im], DeltaConv[:, :, fil2, im], strider)
+                                Wc_grad[:,:,fil1,fil2] = Wc_grad[:,:,fil1,fil2] + \
+                                    conv_comp(activation[:, :, fil1, im], DeltaConv[:, :, fil2, im], strider)
 
-                    bc_grad = np.sum(DeltaConv, axis=(0, 1, 3), keepdims=True).reshape(camada.numFiltros, 1)
-                    camada.W_velocidade = mom * camada.W_velocidade + alpha * (Wc_grad / numImagens + lambda_ * camada.W)
-                    camada.b_velocidade = mom * camada.b_velocidade + alpha * (bc_grad / numImagens)
-                    camada.W = camada.W - camada.W_velocidade
-                    camada.b = camada.b - camada.b_velocidade
-                cnn.camadas[l] = camada
-            print('Epoca %d: Custo Total e Custo na iteracao %d is %f %f\n' % (nep, it, CustoTotal, Custo))
+                    bc_grad = np.sum(DeltaConv, axis=(0, 1, 3), keepdims=True).reshape(layer.numFilters, 1)
+                    layer.W_velocidade = mom * layer.W_velocidade + alpha * (Wc_grad / numImagens + lambda_ * layer.W)
+                    layer.b_velocidade = mom * layer.b_velocidade + alpha * (bc_grad / numImagens)
+                    layer.W = layer.W - layer.W_velocidade
+                    layer.b = layer.b - layer.b_velocidade
+                cnn.layers[l] = layer
+            print('Epoch %d: Total cost and cost in iteration  %d is %f %f\n' % (nep, it, CustoTotal, Custo))
             plotData.loc[len(plotData) + 1] = [nep, it, CustoTotal, Custo]
             #break
 
         #cnnTest(cnn,testimages,testlabels)
-       # alpha = alpha/2.0
+        #alpha = alpha/2.0
     #['Epoca', 'Iteration', 'Total Cost', 'Cost'])
     plt.figure()
     plt.plot('Epoch', 'Total Cost', data = plotData)
     plt.xlabel('Epoch')
     plt.ylabel('Total Cost')
     plt.title('Convoluntional Neural Network - CNN' )
-    plt.savefig('cnn.png', dpi=300, bbox_inches='tight')
+    if pdir != '':
+        plt.savefig('cnn.png', dpi=300, bbox_inches='tight')
     plt.show()
 
     return cnn
 
-
+#=========================================
+# Load MNIST dataset
+#=========================================
 # Return  28x28x[number of MNIST images] matrix containing
 # the raw MNIST images
-
 def loadMNISTImages(filename):
     
-    #fp = fopen(filename, 'rb')
     fp = open(filename, 'rb')
-#    np.fromfile(fp, dtype='>u4', count = 1)
 
     assert fp != -1, 'Could not open ' + filename
 
-
     magic = np.fromfile(fp, dtype='>u4', count=1)
-    #magic = fread(fp, 1, 'int32', 0, 'ieee-be')
     assert magic == 2051, 'Bad magic number in ' + filename
-
-    #numImages = fread(fp, 1, 'int32', 0, 'ieee-be')
-    #numRows = fread(fp, 1, 'int32', 0, 'ieee-be')
-    #numCols = fread(fp, 1, 'int32', 0, 'ieee-be')
 
     numImages = int(np.fromfile(fp, dtype='>u4', count = 1))
     numRows = int(np.fromfile(fp, dtype='>u4', count = 1))
     numCols = int(np.fromfile(fp, dtype='>u4', count = 1))
 
-#    images = fread(fp, inf, 'unsigned char')
     images = np.fromfile(fp, dtype='>u1')
     images = np.reshape(images, (numCols, numRows, numImages), order = 'F')
     images = images.transpose(1, 0, 2)
@@ -827,16 +898,11 @@ def loadMNISTLabels(filename):
     fp = open(filename, 'rb')
     assert fp != -1, 'Could not open ' + filename
 
-#    magic = fread(fp, 1, 'int32', 0, 'ieee-be')
     magic = np.fromfile(fp, dtype='>u4', count = 1)
     assert magic == 2049, 'Bad magic number in ' + filename
 
-#    numLabels = fread(fp, 1, 'int32', 0, 'ieee-be')
     numLabels = np.fromfile(fp, dtype='>u4', count = 1)
-
-    #    labels = fread(fp, inf, 'unsigned char')
     labels = np.fromfile(fp, dtype='>u1')
-
     labels = labels.reshape(len(labels),1, order = 'F')
 
     assert labels.shape[0] == numLabels, 'Mismatch in label count'
@@ -844,97 +910,88 @@ def loadMNISTLabels(filename):
     fp.close()
 
     return labels
+
+#=====================================
+# Demo with MNIST dataset
+#=====================================
 if __name__ == '__main__':
     opts = obj()
-    opts.alpha = 1e-1     # taxa  de aprendizado
-    opts.batchsize = 50   # tamanho do conjunto de treinamento 150
-    opts.numepocas = 200  # Numero de epocas
-    opts.imageDimX = 28   # Dimensão do eixo X da imagem
-    opts.imageDimY = 28   # Dimensão do eixo X da imagem
-    opts.imageCanal = 1   # Quantidade de canais da imagem de entrada
-    opts.numClasses = 10  # Numero de classes
-    opts.lambda_ = 0.0001 # fator de decaimento dos pesos
-    opts.ratio = 0.0      # fator de congelamento dos pesos
-    opts.momentum = 0.95  # fator do momento
-    opts.mom = 0.5        # Altera momento
-    opts.momIncrease = 20 # Numero de epocas para incrementar momento
+    opts.alpha = 1e-1     # learning rate
+    opts.batchsize = 50   # training set size = 150
+    opts.numepochs = 200  # number of epochs
+    opts.imageDimX = 28   # image X axis dimension
+    opts.imageDimY = 28   # image Y axis dimension
+    opts.imageCanal = 1   # number of channels in input image
+    opts.numClasses = 10  # number of classes
+    opts.lambda_ = 0.0001 # weight decay factor
+    opts.ratio = 0.0      # weight freeze factor
+    opts.momentum = 0.95  # final momentum factor
+    opts.mom = 0.5        # initial momentum factor
+    opts.momIncrease = 20 # number of epochs to change momentum
 
-    # Carrega base de dados MINST Treinamento 
-    #addpath .\imagens\
-    path = '../../../Convolutional-Neural-Networks---Matlab-master/'
-    images = loadMNISTImages(path + 'imagens/train-images-idx3-ubyte')
+    # load MNIST - Train
+    path = './images/'
+    images = loadMNISTImages(path + 'train-images-idx3-ubyte')
     images = np.reshape(images, (opts.imageDimX, opts.imageDimY, 1, -1), order = 'F')
-    labels = loadMNISTLabels(path + 'imagens/train-labels-idx1-ubyte')
-    # labels[labels == 0] = 10 # Remap 0 to 10
+    labels = loadMNISTLabels(path + 'train-labels-idx1-ubyte')
     images = images[:, :, :, 0:500]
     labels = labels[0:500]
 
-
-    # Carrega base de dados MINST Teste
-    testImages = loadMNISTImages(path + 'imagens/t10k-images-idx3-ubyte')
+    # Load MINST - Test
+    testImages = loadMNISTImages(path + 't10k-images-idx3-ubyte')
     testImages = np.reshape(testImages, (opts.imageDimX, opts.imageDimY, 1, -1), order = 'F')
-    testLabels = loadMNISTLabels(path + 'imagens/t10k-labels-idx1-ubyte')
-    # testLabels[testLabels == 0] = 10 # Remap 0 to 10
+    testLabels = loadMNISTLabels(path + 't10k-labels-idx1-ubyte')
 
-    # Camadas
+    # layers
     # c ---- convolucional
-        #numfiltros, strider, dimFiltros, função ativação (sig, relu,)
+        #numFilters, strider, dimFiltros, activation function (sig, relu,)
     # p ---- pooling
         # strider, dimPool, Max ou Media
     # f ---- full conect 
         # fativ (sig, relu), numhidden 
         
-
-#    cnnfull.camadas = {
-    #    struct('tipo', 'c', 'numFiltros', 6,'strider',2,'dimFiltros', 2,'fativ','relu')   #camada convolução
-    #    struct('tipo', 'p', 'strider',1,'dimPool', 2,'criterio','max')                    #camada subamostragem
-    #	struct('tipo', 'c', 'numFiltros',8, 'strider',1, 'dimFiltros', 2, 'fativ', 'relu') #camada convolução
-    #	struct('tipo', 'p', 'strider', 2, 'dimPool', 2, 'criterio', 'max')                 #camada subamostragem
-     #   struct('tipo', 'f','fativ','sig','numhidden',100)                                 #camada totalmente conectada 
-     #   struct('tipo', 'f','fativ','sig','numhidden',50)
-#    }
-
     cnn = obj()
-    cnn.camadas = {}
-    #camada convolução
-    cnn.camadas[0] = obj()
-    cnn.camadas[0].tipo = 'c'           # c = convolucao
-    cnn.camadas[0].numFiltros = 4       #
-    cnn.camadas[0].strider = 1          # strider
-    cnn.camadas[0].dimFiltros = 2       # tamanho do filtro
-    cnn.camadas[0].fativ = 'relu'       # sig/relu: função de ativação.
+    cnn.layers = {}
+    # convolution layer
+    cnn.layers[0] = obj()
+    cnn.layers[0].type = 'c'            # c = convolution
+    cnn.layers[0].numFilters = 4        # number of filters
+    cnn.layers[0].strider = 1           # strider
+    cnn.layers[0].dimFiltros = 2        # filter size
+    cnn.layers[0].fativ = 'relu'       # sig/relu: activation function
     
-    #camada subamostragem
-    cnn.camadas[1] = obj()
-    cnn.camadas[1].tipo = 'p'           # p = pooling
-    cnn.camadas[1].strider = 2          # strider
-    cnn.camadas[1].dimPool = 2          # tamanho do filtro
-    cnn.camadas[1].criterio = 'max'     # max/mean
-    # camada convolução
-    # cnn.camadas[2] = obj()
-    # cnn.camadas[2].tipo = 'c'  # c = convolucao
-    # cnn.camadas[2].numFiltros = 4  #
-    # cnn.camadas[2].strider = 1  # strider
-    # cnn.camadas[2].dimFiltros = 2  # tamanho do filtro
-    # cnn.camadas[2].fativ = 'relu'  # sig/relu: função de ativação.
+    # pooling layer
+    cnn.layers[1] = obj()
+    cnn.layers[1].type = 'p'            # p = pooling
+    cnn.layers[1].strider = 2           # strider
+    cnn.layers[1].dimPool = 2           # filter size
+    cnn.layers[1].criterio = 'max'      # max/mean
+
+    # convolution layer 
+    # cnn.layers[2] = obj()
+    # cnn.layers[2].type = 'c'          # c = convolution
+    # cnn.layers[2].numFilters = 4      #
+    # cnn.layers[2].strider = 1         # strider
+    # cnn.layers[2].dimFiltros = 2      # filter size
+    # cnn.layers[2].fativ = 'relu'      # sig/relu: activation function
     #
-    # # camada subamostragem
-    # cnn.camadas[3] = obj()
-    # cnn.camadas[3].tipo = 'p'  # p = pooling
-    # cnn.camadas[3].strider = 2  # strider
-    # cnn.camadas[3].dimPool = 2  # tamanho do filtro
-    # cnn.camadas[3].criterio = 'max'  # max/mean
+    # pooling layer
+    # cnn.layers[3] = obj()
+    # cnn.layers[3].type = 'p'          # p = pooling
+    # cnn.layers[3].strider = 2         # strider
+    # cnn.layers[3].dimPool = 2         # filter size
+    # cnn.layers[3].criterio = 'max'    # max/mean
 
-    #camada totalmente conectada 
-    # cnn.camadas[2] = obj()              #
-    # cnn.camadas[2].tipo = 'f'           # f = full connected
-    # cnn.camadas[2].fativ = 'sig'        # sig/relu: função de ativação
-    # cnn.camadas[2].numhidden = 100      # numero de neuronios na camada escondida
+    # full connected layer
+    # cnn.layers[2] = obj()              #
+    # cnn.layers[2].type = 'f'           # f = full connected
+    # cnn.layers[2].fativ = 'sig'        # sig/relu: activation funciton
+    # cnn.layers[2].numhidden = 100      # number of neurons in hidden layer
     #
 
-    #Inicializa parâmetros da CNN
-    cnn = inicializa_parametros(cnn, opts)
+    # initialize CNN parameters
+    cnn = init_params(cnn, opts)
 
-    cnn = treinamento_cnn(cnn, images, labels)
+    # train
+    cnn = train_cnn(cnn, images, labels)
 
-    # predict(cnn, testImages, testLabels)
