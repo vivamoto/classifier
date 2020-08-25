@@ -64,9 +64,27 @@ ME(X, Yd, m = 4, gating = 'linear', add_bias = False):
 ```
 ## Results
 
-![Correlation](correlation_1.png)
+![Correlation](plots/correlation_1.png)
 
-![Linear gating](./linear_gating.png)
+![Linear gating](plots/linear_gating.png
+
+
+![](plots/correlation_1.png)
+
+![](plots/figure_2.png)
+
+![](plots/figure_3.png)
+
+![](plots/figure_4.png)
+
+![](plots/heatmap.png)
+
+[](plots/linear_gating.png)
+
+![](plots/linear_gating_20lags.png)
+
+![](plots/linear_ts.png)
+
 
 ## Reference
 Lima, C.A.M 2020, *Comitê de Máquinas*, lecture notes, Universidade de Sao Paulo, delivered 2020-06-04
