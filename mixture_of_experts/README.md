@@ -68,17 +68,11 @@ Sample plots.
 
 ![Correlation](plots/correlation_1.png)
 
-![Linear gating](plots/linear_gating.png)
-
-
 ![](plots/figure_2.png)
 
 ![](plots/figure_3.png)
 
 ![](plots/figure_4.png)
-
-![Heatmap](plots/heatmap.png)
-
 
 ![Linear gating with 20 lags](plots/linear_gating_20lags.png)
 
