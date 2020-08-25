@@ -64,3 +64,10 @@ Example code at the end of the file.
 
 ## Reference
 Lecture from Prof Clodoaldo Lima
+
+## Cite as
+Victor Ivamoto. (2020, August 25). vivamoto/Classifier: First release. (Version v0.1.1-beta). Zenodo. http://doi.org/10.5281/zenodo.4001109
+
+[![DOI](https://zenodo.org/badge/279084447.svg)](https://zenodo.org/badge/latestdoi/279084447)
+
+
