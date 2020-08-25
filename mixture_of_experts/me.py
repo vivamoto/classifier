@@ -2,13 +2,14 @@
 # -*- coding: utf-8 -*-
 """
  Mixture of Experts
+ 
  Simple architecture with no hierarchy of experts.
  Two setups:
     1. Linear models for experts and gating with softmax output
     2. Linear models for experts and gating with normalized gaussian output
 
  Input: time series one step ahead
- Goal: predict new values
+ Goal:  predict new values
 
  Main methods:
  - best_lag:        Create charts to select the best lag length
@@ -31,9 +32,18 @@ import random
 # Create 3 plots to select best lag in time series dataset
 ##################################################
 def best_lag(ts, pdir):
-    # Input
-    # ts: time series dataset
-    # pdir: directory to save plots
+    """
+    Create 3 plots to select best lag in time series dataset.
+    
+    Args:
+        ts:         time series dataset
+        pdir:       directory to save plots, if not empty
+
+    Returns:
+        - time series x lagged time series plot
+        - correlation heatmap plot
+        - correlation line chart
+    """
 
     #-------------------------
     # 1. Plot time series x lagged time series
@@ -86,8 +96,8 @@ def best_lag(ts, pdir):
     plt.title('Correlation Between Input and Delayed Input')
     plt.xlabel('Lag')
     plt.ylabel('Y Correlation')
-    # Uncomment to save plot
-    #plt.savefig(pdir + 'corr2.png', dpi=300, bbox_inches='tight')
+    if pdir != '':
+        plt.savefig(pdir + 'corr2.png', dpi=300, bbox_inches='tight')
     plt.show()
 
     return
@@ -102,12 +112,15 @@ def best_lag(ts, pdir):
 # C. A. M. Lima
 def cv_experts(ts, lag = 20, gating = 'linear', pdir = ''):
     """
+    Select best number of experts using cross validation
+    Plot the number of experts vs likelihood
+
      Input
         ts:         time series dataset
         lag:        time lag used to build the (x, y) dataset
         gating:     gating type 'linear' or 'gaussian'
     Output:
-        bestm: best number of experts
+        best number of experts
     """
 
     kfolds  = 5         # number of cross-validation folds
@@ -197,8 +210,8 @@ def cv_experts(ts, lag = 20, gating = 'linear', pdir = ''):
     plt.xlabel('Number of Experts')
     plt.ylabel('Likelihood')
     plt.title(title)
-    # Uncomment to save plot
-    #plt.savefig(pdir + gating + '_' + str(lag) + '_cv_experts.png', dpi=300, bbox_inches='tight')
+    if pdir != '':
+        plt.savefig(pdir + gating + '_' + str(lag) + '_cv_experts.png', dpi=300, bbox_inches='tight')
     plt.show()
     return bestm
 
@@ -208,11 +221,19 @@ def cv_experts(ts, lag = 20, gating = 'linear', pdir = ''):
 ##################################################
 # Train and predict the model, then creates a plot
 def final_ME(ts, m, lag = 20, gating = 'linear', pdir = ''):
-    # Input:
-    # ts: time series dataset
-    # m: number of experts
-    # lag: time series lag
-    # gating: gating type 'linear' or 'gaussian'
+    """
+    Train and predict the model, then creates a plot.
+    
+    Args:
+        ts:         time series dataset
+        m:          number of experts
+        lag:        time series lag
+        gating:     gating type: 'linear' or 'gaussian'
+        pdir:       directory to save plot
+
+    Returns:
+        plots
+    """
 
     #------------------------------------------
     # 1. Create (X, Y) dataset
@@ -286,8 +307,8 @@ def final_ME(ts, m, lag = 20, gating = 'linear', pdir = ''):
     plt.ylabel('Value')
     plt.suptitle('Real vs Predicted Time Series')
     plt.title(gating.title() + ' Gating, ' + str(lag) + ' Lags, ' + str(m) + ' Experts')
-    # Uncomment to save plot
-    #plt.savefig(pdir + gating + '.png', dpi=300, bbox_inches='tight')
+    if pdir != '':
+        plt.savefig(pdir + gating + '.png', dpi=300, bbox_inches='tight')
     plt.show()
 
     xrange = np.arange(y_test.size)
@@ -301,8 +322,8 @@ def final_ME(ts, m, lag = 20, gating = 'linear', pdir = ''):
 
     plt.xlabel('Test set')
     plt.suptitle(gating.title() + ' Gating, ' + str(lag) + ' Lags, ' + str(m) + ' Experts')
-    # Uncomment to save plot
-    #plt.savefig(pdir + 'gate_' + gating + '.png', dpi=300, bbox_inches='tight')
+    if pdir != '':
+        plt.savefig(pdir + 'gate_' + gating + '.png', dpi=300, bbox_inches='tight')
     plt.show()
 
     # Plot experts
@@ -314,8 +335,8 @@ def final_ME(ts, m, lag = 20, gating = 'linear', pdir = ''):
 
     plt.xlabel('Test set')
     plt.suptitle(gating.title() + ' Gating, ' + str(lag) + ' Lags, ' + str(m) + ' Experts')
-    # Uncomment to save plot
-    #plt.savefig(pdir + 'expert_' + gating + '.png', dpi=300, bbox_inches='tight')
+    if pdir != '':
+        plt.savefig(pdir + 'expert_' + gating + '.png', dpi=300, bbox_inches='tight')
     plt.show()
 
 
@@ -335,8 +356,8 @@ def final_ME(ts, m, lag = 20, gating = 'linear', pdir = ''):
 
     plt.xlabel('Test set')
     plt.suptitle(gating.title() + ' Gating, ' + str(lag) + ' Lags, ' + str(m) + ' Experts')
-    # Uncomment to save plot
-    #plt.savefig(pdir + 'data_' + gating + '.png', dpi=300, bbox_inches='tight')
+    if pdir != '':
+        plt.savefig(pdir + 'data_' + gating + '.png', dpi=300, bbox_inches='tight')
     plt.show()
 
     return
@@ -344,12 +365,21 @@ def final_ME(ts, m, lag = 20, gating = 'linear', pdir = ''):
 
 def ME(X, Yd, m = 4, gating = 'linear', add_bias = False):
     """
+    Train mixture of experts.
+    
     Input
         X:          input matrix
         Yd:         desired ME output
         m:          number of experts
         add_bias:   if True, add column of ones in X matrix
 
+    Returns
+        wexp:       expert weights
+        wgat:       gating weights
+        var:        variance
+        alpha:      gaussian gating parameter
+        gamma:      gaussian gating parameter
+        sigma:      gaussian gating parameter
     """
     # Dimensions:
     # wexp (ns x ne x m)
@@ -461,17 +491,25 @@ def atualiza_gat_linear(X, h, w):
         dQdw = dQdE.T @ X       # Q derivative w.r.t. weights
     return w
 
-# Ref: Aula 09 - Comite de Maquinas - slide 113
+1# Ref: Aula 09 - Comite de Maquinas - slide 113
 # C.A.M.Lima
 def atualiza_exp(X, Yd, h, var, w, ns):
-    # Use gradient ascent to update the expert weights
-    # until the gradient is near zero, i.e. reach a local maximum.
-    # Input:
-    # X, Yd: train dataset
-    # h:   posterior probability
-    # var: variance
-    # w: expert weight
-    # ns:>
+    """
+    Use gradient ascent to update the expert weights until the gradient is
+    near zero, i.e. reach a local maximum.
+    
+    Args:
+        X:      trian set
+        Yd:     train set, desired output
+        h:      posterior probability
+        var:    variance
+        w:      expert weights
+        ns:     number of outputs
+
+    Returns:
+
+    """
+
     h = np.array([h]).T
 #    y = X @ w.T
 #    dQdu = (h / var) * (Yd - y)     # slide 129
