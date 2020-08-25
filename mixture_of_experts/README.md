@@ -64,12 +64,12 @@ ME(X, Yd, m = 4, gating = 'linear', add_bias = False):
 ```
 ## Results
 
+Sample plots.
+
 ![Correlation](plots/correlation_1.png)
 
-![Linear gating](plots/linear_gating.png
+![Linear gating](plots/linear_gating.png)
 
-
-![](plots/correlation_1.png)
 
 ![](plots/figure_2.png)
 
@@ -77,13 +77,12 @@ ME(X, Yd, m = 4, gating = 'linear', add_bias = False):
 
 ![](plots/figure_4.png)
 
-![](plots/heatmap.png)
+![Heatmap](plots/heatmap.png)
 
-[](plots/linear_gating.png)
 
-![](plots/linear_gating_20lags.png)
+![Linear gating with 20 lags](plots/linear_gating_20lags.png)
 
-![](plots/linear_ts.png)
+![Linear gating - Time series](plots/linear_ts.png)
 
 
 ## Reference
