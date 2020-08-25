@@ -138,3 +138,5 @@ https://doi.org/10.1080/095400996116820
 Creating Diversity In Ensembles Using Artificial Data  
 Prem Melville and Raymond J. Mooney  
 http://www.cs.utexas.edu/~ml/papers/decorate-jif-04.pdf
+
+[![DOI](https://zenodo.org/badge/279084447.svg)](https://zenodo.org/badge/latestdoi/279084447)
