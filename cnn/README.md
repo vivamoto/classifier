@@ -1,4 +1,6 @@
-## Convulution Neural Network
+## Convulutional Neural Network (CNN)
+
+Python and NumPy implementation from scratch of convolutional neural network (CNN).
 
 Flexible architecture: setup the number of layers
 - Convolution layer
@@ -14,8 +16,11 @@ Features:
 - minibatch
 - momentum
 
-Sample code in the end of this file.
+Example of usage in the end of code file.
 
+Author: Lima, C. A. M.
+Translated to Python by Ivamoto, V. - Ramos, W.
+Translated to English: Ivamoto, V.
 
 ## Setup
 
@@ -91,6 +96,6 @@ train_cnn(cnn,images,labels, pdir = ''):
 ![Result.](cnn.png)
 
 ## Reference
-Original MATLAB code:
-https://github.com/ClodoaldoLima/Convolutional-Neural-Networks---Matlab
+
+Lima, C.A.M, 2020 - *CNN* - MATLAB source code: https://github.com/ClodoaldoLima/Convolutional-Neural-Networks---Matlab
 
