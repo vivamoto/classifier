@@ -1,4 +1,4 @@
-## Mixture of Experts
+## Mixture of Experts   [![DOI](https://zenodo.org/badge/279084447.svg)](https://zenodo.org/badge/latestdoi/279084447)
  
 Simple architecture with no hierarchy of experts. Contain sample code with time series dataset. The code can be adapted for classification.
 
@@ -84,4 +84,4 @@ Lima, C.A.M 2020, *Comitê de Máquinas*, lecture notes, Universidade de Sao Pau
 
 Lima, C.A.M 2020 *mixture* source code (version 2.0)
 
-[![DOI](https://zenodo.org/badge/279084447.svg)](https://zenodo.org/badge/latestdoi/279084447)
+
