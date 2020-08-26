@@ -1,4 +1,4 @@
-## Ensemble
+## Ensemble             [![DOI](https://zenodo.org/badge/279084447.svg)](https://zenodo.org/badge/latestdoi/279084447)
 Python and NumPy implementation from scratch of three ensemble methods of multi layer perceptron (MLP) networks for classification. The code can be adapted for regression.
 
 - Ensemble learing via negative correlation
@@ -139,4 +139,4 @@ Creating Diversity In Ensembles Using Artificial Data
 Prem Melville and Raymond J. Mooney  
 http://www.cs.utexas.edu/~ml/papers/decorate-jif-04.pdf
 
-[![DOI](https://zenodo.org/badge/279084447.svg)](https://zenodo.org/badge/latestdoi/279084447)
+
