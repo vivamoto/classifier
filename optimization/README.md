@@ -19,6 +19,10 @@ There're also the example from the book "Nonlinear Programming":
 
       Min f(x1, x2) = (x1 - 2)^4 + (x1 - 2.x2)^2
 
+### Sample plots
+![](gradient_descent.png)
+
+![](pr.png)
 ### Methods available
 1. Gradient Descent
 1. Bisection
