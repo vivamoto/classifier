@@ -1,4 +1,6 @@
-## Ensemble             [![DOI](https://zenodo.org/badge/279084447.svg)](https://zenodo.org/badge/latestdoi/279084447)
+## Ensemble
+[![DOI](https://zenodo.org/badge/279084447.svg)](https://zenodo.org/badge/latestdoi/279084447)
+
 Python and NumPy implementation from scratch of three ensemble methods of multi layer perceptron (MLP) networks for classification. The code can be adapted for regression.
 
 - Ensemble learing via negative correlation
@@ -126,6 +128,7 @@ decorate_predict(X_test, C):
 ## Backpropagation
 The derivatives calculations are available at:  
 https://github.com/vivamoto/Classifier/blob/master/Neural_Network_Derivatives.pdf
+
 ## Reference
 Ensemble learning via negative correlation  
 Y. Liu, X. Yao  
@@ -139,4 +142,6 @@ Creating Diversity In Ensembles Using Artificial Data
 Prem Melville and Raymond J. Mooney  
 http://www.cs.utexas.edu/~ml/papers/decorate-jif-04.pdf
 
+## Cite as
+Victor Ivamoto. (2020, August 25). vivamoto/Classifier: First release. (Version v0.1.1-beta). Zenodo. http://doi.org/10.5281/zenodo.4001109
 
