@@ -1,4 +1,6 @@
 ## Regression
+[![DOI](https://zenodo.org/badge/279084447.svg)](https://zenodo.org/badge/latestdoi/279084447)
+
 Python and NumPy implementation from scratch of regression methods for classification. The code can be adapted for regression.
 
 - Linear regression for classification
@@ -84,7 +86,3 @@ Lima, C.A.M., 2020, *Aula 02 - Modelos Lineares*, lecture notes, Universidade de
 
 Eli Bendersky website  
 https://eli.thegreenplace.net/2016/the-softmax-function-and-its-derivative/
-
-
-[![DOI](https://zenodo.org/badge/279084447.svg)](https://zenodo.org/badge/latestdoi/279084447)
-
