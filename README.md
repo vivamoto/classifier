@@ -1,4 +1,5 @@
 # Classifier
+[![DOI](https://zenodo.org/badge/279084447.svg)](https://zenodo.org/badge/latestdoi/279084447)
 
 Python, NumPy and Matplotlib implementation from scratch of machine learning algorithms used for classification.
 
@@ -61,5 +62,3 @@ Kernel types:
 
 ### Acknowledgment
 I would like to acknowledge professor Clodoaldo A. Moraes Lima for his guidance and support during the machine learning course at Universidade de Sao Paulo.
-
-[![DOI](https://zenodo.org/badge/279084447.svg)](https://zenodo.org/badge/latestdoi/279084447)
