@@ -1,4 +1,5 @@
-## Mixture of Experts   [![DOI](https://zenodo.org/badge/279084447.svg)](https://zenodo.org/badge/latestdoi/279084447)
+## Mixture of Experts   
+[![DOI](https://zenodo.org/badge/279084447.svg)](https://zenodo.org/badge/latestdoi/279084447)
  
 Simple architecture with no hierarchy of experts. Contain sample code with time series dataset. The code can be adapted for classification.
 
@@ -84,4 +85,5 @@ Lima, C.A.M 2020, *Comitê de Máquinas*, lecture notes, Universidade de Sao Pau
 
 Lima, C.A.M 2020 *mixture* source code (version 2.0)
 
-
+## Cite as
+Victor Ivamoto. (2020, August 25). vivamoto/Classifier: First release. (Version v0.1.1-beta). Zenodo. http://doi.org/10.5281/zenodo.4001109
