@@ -51,7 +51,13 @@ Note: code translated from Matlab to Python. Original code in https://github.com
 1. Least Squares Support Vector Machines (LSSVM).
 1. Twin Support Vector Machines (TWSVM).
 
-
+Kernel types:
+1. Linear
+1. Polynomial
+1. Radial Base Function (RBF)
+1. Exponential Radial Base Function (ERBF)
+1. Hyperbolic tangent (tanh)
+1. Linear splines
 
 ### Acknowledgment
 I would like to acknowledge professor Clodoaldo A. Moraes Lima for his guidance and support during the machine learning course at Universidade de Sao Paulo.
