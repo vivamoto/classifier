@@ -1,4 +1,6 @@
 ## Neural Networks
+[![DOI](https://zenodo.org/badge/279084447.svg)](https://zenodo.org/badge/latestdoi/279084447)
+
 Python and NumPy implementation from scratch of simple neural networks.
 - Single Layer Perceptron (SLP)
 - Multi Layer Perceptron (MLP)
@@ -95,5 +97,5 @@ https://github.com/vivamoto/Classifier/blob/master/Neural_Network_Derivatives.pd
 ## Reference
 Lima, C.A.M - 2020 *Redes Neurais*, lecture notes, Universidade de Sao Paulo, delivered 2020-05-07 and 2020-05-21 
 
-[![DOI](https://zenodo.org/badge/279084447.svg)](https://zenodo.org/badge/latestdoi/279084447)
-
+## Cite as
+Victor Ivamoto. (2020, August 25). vivamoto/Classifier: First release. (Version v0.1.1-beta). Zenodo. http://doi.org/10.5281/zenodo.4001109
