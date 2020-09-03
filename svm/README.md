@@ -1,4 +1,6 @@
 ## Support Vector Machines (SVM)
+[![DOI](https://zenodo.org/badge/279084447.svg)](https://zenodo.org/badge/latestdoi/279084447)
+
 Python and NumPy implementation from scratch of three SVM models for classification.
 
 Normalize numerical values of X using min-max or z-score before predicting.  
@@ -71,5 +73,3 @@ Chih-Wei Hsu and Chih-Jen Lin
 A Practical Guide to Support Vector Classification.  
 C.-W.. Hsu, C.-C. Chang, C.-J. Lin (2016).  
 https://www.csie.ntu.edu.tw/~cjlin/papers/guide/guide.pdf  
-
-[![DOI](https://zenodo.org/badge/279084447.svg)](https://zenodo.org/badge/latestdoi/279084447)
