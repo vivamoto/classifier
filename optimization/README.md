@@ -1,4 +1,6 @@
 ## Optimization
+[![DOI](https://zenodo.org/badge/279084447.svg)](https://zenodo.org/badge/latestdoi/279084447)
+
 Python and NumPy implementation of first and second order methods used in neural networks back propagation. 
 
 Consider this problem:
@@ -59,6 +61,4 @@ Lima, C. A. M., Trevisan, N. (2014) - "Aula 03 - Revisao sobre metodos de otimiz
 M. S. Bazaraa, H. D. Sherali, C. M. Shetty. (2006) - "Nonlinear Programming - Theory and Algorithms" - 3rd edition
 
 1994-2005 The MathWorks, Inc. - Neural Network Toolbox - http://matlab.izmiran.ru/help/toolbox/nnet/backpr11.html
-
-[![DOI](https://zenodo.org/badge/279084447.svg)](https://zenodo.org/badge/latestdoi/279084447)
 
